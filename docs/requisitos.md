@@ -1,0 +1,42 @@
+# Requisitos y setup
+
+La idea de este taller es que nadie pierda 20 minutos peleando con Docker o con una base que no arranca. Todo el stack de infraestructura corre en la nube y se configura desde el navegador: Supabase para Postgres y Redpanda para los eventos. Lo único que instalas en tu máquina es lo de siempre para programar en Kotlin.
+
+## En tu máquina
+
+| Herramienta | Versión | Para qué |
+|-------------|---------|----------|
+| **JDK** | 25 | Compilar y correr. Sirve Temurin, Zulu o el que uses |
+| **IntelliJ IDEA** | Community o Ultimate | El IDE. Community alcanza de sobra |
+| **Git** | cualquiera reciente | Clonar el repo y moverte entre fases |
+| Un cliente REST | Bruno, Postman o `curl` | Probar los endpoints |
+
+Nada de Docker. Nada de una base local. Si ya programas en Java o Kotlin, seguro tienes casi todo esto.
+
+## En la nube (se configura en vivo, gratis)
+
+### Supabase (la base de datos)
+
+Supabase te da un Postgres gestionado detrás de un login con GitHub. Lo configuramos en la Fase 0.
+
+1. Entra a [supabase.com](https://supabase.com) y crea un proyecto (el plan gratis alcanza).
+2. Guarda la contraseña de la base que te pide al crear el proyecto.
+3. En **Project Settings → Database** vas a encontrar la cadena de conexión. Esa es la que le pasamos a Spring.
+
+### Redpanda (solo para CaribeConf, la parte de eventos)
+
+Redpanda es un broker compatible con el protocolo de Kafka, más liviano y sin Zookeeper. Para no depender de que cada quien tenga Docker corriendo, usamos **Redpanda Serverless**, que también vive en la nube y se configura desde el navegador. Lo hacemos en la Fase 6.
+
+1. Entra a [redpanda.com](https://www.redpanda.com) y crea un clúster Serverless (tiene capa gratis).
+2. Guarda el **bootstrap server** y las credenciales SASL (usuario y contraseña) que te genera.
+
+!!! note "Alternativa local con Docker"
+    Si estás en un laboratorio con PCs que ya tienen Docker (como en IDITEK), puedes levantar Redpanda local con `rpk container start` en vez de la nube. La guía usa la versión Serverless por defecto porque no controlo las laptops en un evento internacional, pero el código es el mismo; solo cambian las propiedades de conexión.
+
+## Qué le pido a cada organizador
+
+**IDITEK.** Laboratorio con PCs que tengan JDK 25, IntelliJ y Git. Internet estable para Supabase. No hace falta Docker si usamos Supabase para la base; si quieres que la parte de eventos también se vea en vivo ese día, con Docker en las máquinas podemos usar Redpanda local.
+
+**CaribeConf.** Nada instalado de mi parte en las máquinas de los asistentes: el taller corre con JDK 25 e IntelliJ (o cualquier IDE con soporte Kotlin) más una conexión a internet. Supabase y Redpanda Serverless se configuran desde el navegador al inicio. Aviso a los asistentes de traer JDK 25 y un IDE listo, porque no controlo su setup.
+
+Con esto listo, arranca por la [Fase 0](fase-00-arranque.md).
