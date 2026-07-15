@@ -1,0 +1,77 @@
+site_name: "Una wallet en Kotlin: de un endpoint REST a eventos"
+site_description: "Guía paso a paso para construir una billetera digital con Kotlin, Spring Boot 4, Supabase y eventos con Redpanda."
+site_author: "Geovanny Mendoza"
+site_url: "https://geovannymcode.github.io/wallet-kotlin-baqjug/"
+
+repo_name: "geovannymcode/wallet-kotlin-baqjug"
+repo_url: "https://github.com/geovannymcode/wallet-kotlin-baqjug"
+
+copyright: "Copyright &copy; 2026 Geovanny Mendoza"
+
+theme:
+  name: material
+  language: es
+  palette:
+    - scheme: slate
+      primary: deep orange
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Cambiar a modo claro
+    - scheme: default
+      primary: deep orange
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Cambiar a modo oscuro
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+nav:
+  - Inicio: index.md
+  - Requisitos y setup: requisitos.md
+  - Fases:
+      - "Fase 0 · El problema y el andamiaje": fase-00-arranque.md
+      - "Fase 1 · El dominio de la wallet": fase-01-dominio.md
+      - "Fase 2 · Exponer el saldo por REST": fase-02-rest.md
+      - "Fase 3 · Transferencias con validación": fase-03-transferencia.md
+      - "Fase 4 · Registro de movimientos": fase-04-movimientos.md
+      - "Fase 5 · Por qué eventos": fase-05-por-que-eventos.md
+      - "Fase 6 · Publicar el evento (Redpanda)": fase-06-publicar-evento.md
+      - "Fase 7 · Consumir el evento": fase-07-consumir-evento.md
+      - "Fase 8 · Qué sigue": fase-08-que-sigue.md
+  - Referencias: referencias.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - toc:
+      permalink: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/geovannymcode
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/in/geovannycode/
