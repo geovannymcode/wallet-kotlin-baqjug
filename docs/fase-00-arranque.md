@@ -1,22 +1,73 @@
 # Fase 0 · El problema y el andamiaje
 
 **Rama**: `fase-0`
-**Lo que vas a lograr**: entender qué wallet vamos a construir y por qué, generar el proyecto con el asistente de Spring, dejarlo abierto en IntelliJ con la estructura por features, y conectarlo a Supabase.
+**Lo que vas a lograr**: entender el problema y sus requisitos, ver la arquitectura de un vistazo, elegir el stack justificándolo, generar el proyecto y organizarlo por features, y conectarlo a Supabase.
 
 ---
 
-## Parte 1 — El problema en una frase
+## Parte 1 — El problema, en lenguaje natural
 
-Una billetera digital tiene que hacer algo que suena trivial y no lo es: mover plata de una cuenta a otra sin que se pierda ni se duplique un peso. Si algo falla a la mitad, no puede quedar la cuenta de origen debitada y la de destino sin acreditar. Y cada movimiento tiene que quedar registrado.
+Antes de escribir una línea, tengamos claro qué estamos resolviendo. Nada de tecnología todavía; solo el negocio.
 
-Eso es lo que vamos a construir. Primero como un endpoint REST directo. Después, cuando ya funcione, le metemos eventos para desacoplar el registro y la notificación.
+Una billetera digital tiene que hacer algo que suena trivial y no lo es: mover plata de una cuenta a otra sin que se pierda ni se duplique un peso. Si algo falla a la mitad, no puede quedar la cuenta de origen debitada y la de destino sin acreditar. Cada movimiento tiene que quedar registrado, y cuando ocurre, alguien va a querer enterarse (un correo, una alerta).
+
+Eso es todo el problema. Lo vamos a construir primero como un endpoint REST directo y, cuando ya funcione, le meteremos eventos para desacoplar el registro y la notificación.
+
+## Parte 2 — El requerimiento, como historia de usuario
+
+El problema en prosa está bien para conversar, pero para construir conviene ordenarlo. Lo escribimos como en la industria: qué debe **hacer** el sistema (funcional), cómo debe **comportarse** (no funcional) y qué **límites** no puede cruzar (restricciones).
+
+!!! abstract "Concepto al paso: funcional, no funcional y restricciones"
+    Los requisitos **funcionales** son las acciones que el sistema ofrece ("transferir plata"). Los **no funcionales** son cualidades de cómo las hace ("nunca dejar un saldo roto", "responder rápido"). Las **restricciones** son reglas duras que acotan la solución ("el dinero se representa exacto"). Separarlos evita que se te escape lo importante: casi siempre, lo que hunde un sistema de plata no es una función que falta, sino un no funcional que nadie respetó.
+
+> **Historia de usuario.** Como usuario de la wallet, quiero consultar mi saldo y transferir plata a otra cuenta, con la certeza de que ni un centavo se pierde y de que cada movimiento queda registrado.
+
+**Funcional — qué debe hacer**
+
+- Consultar el saldo de una cuenta.
+- Transferir plata de una cuenta a otra, rechazando la operación si no hay saldo suficiente.
+- Registrar cada movimiento: de quién, a quién, cuánto y cuándo.
+- Avisar cuando ocurre un movimiento (correo u otra reacción). Esto llega en la parte de eventos.
+
+**No funcional — cómo debe comportarse**
+
+- **Consistencia**: una transferencia es todo-o-nada. Jamás puede quedar la cuenta de origen debitada y la de destino sin acreditar.
+- **Exactitud del dinero**: ni un centavo perdido por redondeo.
+- **Evolución sin riesgo**: poder agregar reacciones nuevas (correo, antifraude, métricas) sin tocar el corazón de la transferencia.
+- **Trazabilidad**: cada cuenta y cada movimiento llevan registro de cuándo ocurrieron.
+
+**Restricciones — los límites duros**
+
+- El dinero se representa con precisión exacta; nada de números flotantes.
+- No se puede perder un movimiento ni procesarlo mal porque un proceso se cayó.
+- El esquema de la base viaja versionado en el repositorio, reproducible en cualquier máquina.
+
+## Parte 3 — La arquitectura, a vista de pájaro
+
+Con el problema y los requisitos claros, miremos la forma de la solución antes de elegir herramientas.
+
+![Arquitectura general: los clientes (consumers) hacen peticiones REST a la aplicación wallet, que a través de ORM/JPA lee y escribe las tablas de cuentas y transferencias en la base de datos Postgres](img/Img_0.png)
+
+Es simple a propósito: unos clientes entran por HTTP a **una aplicación** (la wallet), y esa aplicación lee y escribe en **una base de datos** relacional a través de un mapeo objeto-relacional (ORM/JPA). Toda la lógica —validar el saldo, mover la plata, registrar el movimiento— vive en esa caja del medio.
+
+Esa forma nos alcanza para las primeras fases. Más adelante, cuando entren los eventos, a la derecha aparecerá un broker por donde salen los hechos que otros servicios consumen; pero el corazón sigue siendo el mismo: clientes → aplicación → base.
+
+## Parte 4 — El stack, elegido desde los requisitos
+
+Recién ahora elegimos herramientas, y cada una responde a un requisito de arriba, no a la moda:
+
+- **Exactitud del dinero** → una base **relacional** que guarda decimales exactos (`NUMERIC`) y, en el código, `BigDecimal`. Nada de flotantes.
+- **Consistencia todo-o-nada** → una base con **transacciones ACID**. Postgres las tiene, y Spring nos deja envolver una operación en una transacción con una anotación.
+- **Base gestionada, sin dolor de instalación** → **Supabase**, un Postgres en la nube detrás de un login.
+- **Esquema versionado y reproducible** → **Flyway**, que aplica migraciones SQL numeradas y anota cuáles ya corrió.
+- **Menos plomería, servidor listo** → **Spring Boot**, que trae servidor web, acceso a datos e inyección de dependencias sin que configures medio mundo.
+- **Lenguaje expresivo y seguro** → **Kotlin**: `data class` para objetos de datos en una línea, null-safety para que los nulos no exploten en runtime, y `sealed class` para modelar con exactitud los finales de una operación (lo verás en la transferencia).
+- **Evolución sin riesgo** → **mensajería por eventos** con **Kafka/Redpanda**, que entra en la segunda parte para desacoplar las reacciones.
 
 !!! abstract "Concepto al paso: qué es Spring Boot"
     Spring Boot es un framework para armar aplicaciones backend en la JVM sin configurar medio mundo a mano. Te da un servidor web embebido, conexión a base de datos, inyección de dependencias y un montón de piezas listas para usar. Tú te concentras en tu lógica; Boot cablea lo aburrido.
 
-## Parte 2 — Generar el proyecto con Spring Initializr
-
-Spring Initializr es un asistente web que arma el esqueleto del proyecto. Entra a [https://start.spring.io](https://start.spring.io) y llena:
+Con las decisiones tomadas, generamos el esqueleto. **Spring Initializr** es un asistente web que lo arma por ti. Entra a [https://start.spring.io](https://start.spring.io) y llena:
 
 | Campo | Valor |
 |-------|-------|
@@ -29,7 +80,7 @@ Spring Initializr es un asistente web que arma el esqueleto del proyecto. Entra 
 | Packaging | **Jar** |
 | Java | **25** |
 
-En **Dependencies**, agrega estas cuatro por ahora (la de Kafka la sumamos en la Fase 6):
+En **Dependencies**, agrega estas por ahora (la de Kafka la sumamos en la Fase 6):
 
 | Dependencia | Para qué |
 |-------------|----------|
@@ -44,7 +95,7 @@ Haz clic en **GENERATE**, descomprime dentro de tu repo y ábrelo en IntelliJ (*
 !!! note "El plugin `kotlin-jpa` ya viene"
     Si generaste con JPA, el `build.gradle.kts` trae el plugin `kotlin("plugin.jpa")`. Ese plugin le genera por detrás a tus entidades el constructor sin argumentos que JPA exige, sin que tú tengas que escribirlo. Sin él, las entidades de Kotlin no arrancan.
 
-## Parte 3 — Cómo organizamos el código
+## Parte 5 — Cómo organizamos el código
 
 Acá tomamos la decisión de organización más importante del taller, y la vamos a explicar con calma porque de esto depende cómo se ve todo lo que sigue. Si nunca has pensado en "arquitectura de software", tranquilo: por ahora es solo **dónde poner cada archivo y por qué**.
 
@@ -106,7 +157,7 @@ com.baqjug.wallet
 !!! note "¿De dónde sale todo esto?"
     Este patrón lo popularizó Siva Prasad Reddy con el nombre de **Tomato Architecture**. El nombre no significa nada (igual que "hexagonal" tampoco); es un guiño para no tomarse la arquitectura tan en serio. Si quieres el detalle, está en [su blog](https://www.sivalabs.in/blog/tomato-architecture-pragmatic-approach-to-software-design/). Lo que nos importa acá: package-by-feature, servicios concretos, y abrazar el framework en vez de envolverlo en abstracciones.
 
-## Parte 4 — Conectar Supabase
+## Parte 6 — Conectar Supabase
 
 Abre tu proyecto de Supabase, ve a **Project Settings → Database** y copia los datos de conexión. Vamos a pasárselos a Spring por variables de entorno, no quemados en el código.
 

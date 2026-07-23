@@ -83,6 +83,10 @@ class OutboxRelay(
 }
 ```
 
+Todo el ciclo, de la transacción al broker, se ve así:
+
+![Diagrama de secuencia del patrón outbox: TransferService mueve el saldo y guarda una fila en la tabla outbox dentro de una sola transacción en Postgres; un OutboxRelay, cada 2 segundos, lee las filas no enviadas con FOR UPDATE SKIP LOCKED, las publica en Redpanda y marca sent_at](img/Img_5.png)
+
 !!! note "Por qué no lo metimos en el taller en vivo"
     El outbox agrega una tabla, un relay con `@Scheduled` y serialización a mano. Para 60 minutos, habría tapado el concepto central (publicar y consumir) con plomería. Pero en algo con plata, el outbox no es opcional: es la diferencia entre "casi siempre avisa" y "siempre avisa".
 

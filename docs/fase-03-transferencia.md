@@ -248,6 +248,10 @@ curl -X POST http://localhost:8080/api/transfers \
 
 Consulta los saldos después: Elena quedó en 70000 y Geovanny en 30000. Intenta ahora transferir 999999 y te da `422 Saldo insuficiente`, sin mover un peso.
 
+Con esto, la feature `account` ya tiene todas sus piezas conectadas: la entidad, el DTO, el mapper, el servicio y el repositorio.
+
+![Diagrama de clases de la feature account: AccountEntity (entidad JPA) y AccountResponse (DTO de salida) unidos por AccountMapper; AccountService usa AccountRepository (interfaz) y AccountMapper, y devuelve un MoveResult (sealed class)](img/Img_4.png)
+
 ## Cierre de la fase
 
 ```bash

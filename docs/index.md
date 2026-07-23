@@ -25,7 +25,7 @@ Esa caja del medio, la aplicación, es donde vive todo lo que vamos a escribir. 
 
 En la parte de eventos, el registro deja de ser una llamada directa y pasa a publicarse:
 
-![Flujo por eventos: transfer mueve el saldo en account y publica el evento MovimientoRegistrado en Redpanda; notification lo consume desde el otro lado y notifica](img/Img_2.png)
+![Flujo por eventos: transfer publica el evento MovimientoRegistrado en el topic de Redpanda, y dos grupos de consumidores lo reciben cada uno por su cuenta: notification (envía el correo) y movement (guarda el registro)](img/Img_2.png)
 
 El cambio se ve chico en el diagrama, pero es el corazón de la segunda parte: `transfer` deja de saber quién registra o notifica. Solo suelta un evento. Quién lo escuche, y cuántos lo escuchen, ya no es su problema.
 

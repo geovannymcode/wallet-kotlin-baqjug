@@ -153,6 +153,8 @@ class MovimientoPersistenceListener(
 !!! danger "Grupos distintos: los dos reciben cada evento"
     Fíjate: `notification` está en el grupo `notification` y `movement` en el grupo `movement`. Como son grupos distintos, **cada uno recibe una copia** de cada evento. Una sola transferencia dispara un aviso y un registro, en paralelo, sin que se pisen. Si ambos estuvieran en el mismo grupo, el broker le daría el evento a uno solo. Esa diferencia es el corazón del pub/sub.
 
+![Diagrama de flujo del pub/sub: transfer publica el evento MovimientoRegistrado en el topic wallet.movements de Redpanda; el grupo notification lo recibe y envía el correo, y el grupo movement lo recibe y guarda el registro](img/Img_2.png)
+
 !!! note "Un consumidor nuevo no toca a `transfer`"
     Este es el pago de todo el trabajo. Agregaste dos consumidores y no tocaste una línea de `transfer`. Mañana quieres antifraude: creas otro `@KafkaListener` con su grupo y listo. `transfer` ni se entera. Compara eso con la rama `Success` de la Fase 4, donde cada cosa nueva era editar y redesplegar `transfer`.
 

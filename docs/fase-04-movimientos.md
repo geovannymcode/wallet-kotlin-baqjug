@@ -132,6 +132,10 @@ class TransferService(
 !!! danger "Acá está la costura"
     Fíjate qué acabamos de hacer: `transfer` ahora **conoce** a `movement` y lo llama en línea, en la rama `Success`. Funciona. Pero si mañana además hay que mandar un correo, disparar un push y avisar a antifraude, todos esos van a colgarse de esta misma rama. Y si `movement` se pone lento o falla, la transferencia se cuelga o se cae con él. Esa es exactamente la costura que en la Fase 6 vamos a cortar con eventos.
 
+Visto de punta a punta, así recorre una transferencia exitosa el flujo síncrono, ya con el registro del movimiento incluido:
+
+![Diagrama de secuencia de una transferencia: el cliente hace POST /api/transfers al TransferController, que llama a TransferService dentro de una transacción; este pide moveMoney a AccountService y luego record a MovementService, y responde 200 COMPLETED](img/Img_1.png)
+
 ## Parte 4 — Un test que corre sin base
 
 Antes de cerrar, un test de la orquestación de `transfer`. Lo bueno: no necesita base ni Spring. Como `transfer` depende de dos clases concretas (`AccountService` y `MovementService`), las **mockeamos**: creamos versiones falsas al vuelo, les decimos qué responder, y verificamos con quién habló `transfer`.

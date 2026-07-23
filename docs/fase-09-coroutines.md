@@ -91,6 +91,10 @@ class NotificationService(
 
 Fíjate qué cambió. `notificar` ahora es `suspend`. Las tres llamadas se lanzan con `async`, así que arrancan **a la vez** en vez de una tras otra. `awaitAll` espera a que las tres terminen. Y mientras cada una espera su respuesta de red, **no bloquea ningún hilo**. Total: ~200 ms (lo que tarde la más lenta), no 600 ms, y sin hilos congelados.
 
+En el tiempo, las tres llamadas se solapan en vez de hacer fila:
+
+![Diagrama de secuencia con coroutines: el listener suspendido llama a NotificationService, que dentro de un coroutineScope lanza en paralelo con async las llamadas a EmailClient, PushClient y AntifraudClient; con awaitAll espera las tres, que juntas tardan ~200 ms en vez de 600 ms](img/Img_6.png)
+
 Los clientes son, a su vez, funciones suspendidas. Con `WebClient` (el cliente HTTP reactivo de Spring) y sus extensiones de Kotlin, la llamada por red se vuelve suspendida con `awaitBody`:
 
 ```kotlin title="notification/domain/EmailClient.kt"
