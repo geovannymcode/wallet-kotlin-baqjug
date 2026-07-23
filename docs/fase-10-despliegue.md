@@ -1,111 +1,17 @@
-# Fase 10 · Despliegue con GitHub Actions (y correo real con Mailpit)
+# Fase 10 · Despliegue con GitHub Actions
 
 **Rama**: opcional, es el paso de "shipping". Hasta acá corriste todo en tu máquina; esta fase lleva la wallet a la nube y hace que cada `push` a `main` la construya, la teste y la despliegue sola.
-**Lo que vas a lograr**: que `notification` mande un correo de verdad (atrapado por Mailpit, sin spamear a nadie), empaquetar la app en una imagen Docker, montar un pipeline de GitHub Actions que compila y testea, y desplegar a Render (o Railway) con `push` a `main`.
+**Lo que vas a lograr**: empaquetar la app en una imagen Docker, montar un pipeline de GitHub Actions que compila y testea, y desplegar a Render (o Railway) con `push` a `main`.
 
 !!! warning "Esta fase es de operaciones (ops), no de código de negocio"
-    Nada de lo anterior cambia. Acá agregamos lo que falta para que la wallet viva fuera de tu laptop: correo real, imagen Docker, integración continua y despliegue. Es opcional, pero es lo que separa "me corre en local" de "está en internet".
+    Nada del código de negocio cambia. Acá montamos lo que falta para que la wallet viva fuera de tu laptop: imagen Docker, integración continua y despliegue. Es opcional, pero es lo que separa "me corre en local" de "está en internet".
+
+!!! note "El correo ya lo montamos en la Fase 7"
+    En la Fase 7, `notification` manda el correo con Mailpit en local. Al desplegar, las variables `SMTP_*` dejan de apuntar a Mailpit y apuntan a un proveedor real (SendGrid, Amazon SES, Mailgun). El código no cambia; solo las variables.
 
 ---
 
-## Parte 1 — Que `notification` mande un correo de verdad (Mailpit)
-
-En la Fase 7, el listener de `notification` solo escribía un log. Para un demo creíble, queremos que **mande un correo**. Pero mandar correos reales en un taller es mala idea (spam, credenciales, rebotes). La solución: **Mailpit**.
-
-!!! abstract "Concepto al paso: SMTP y Mailpit"
-    **SMTP** es el protocolo con el que las apps entregan correos a un servidor de correo. **Mailpit** es un servidor SMTP **falso**: tu app le entrega los correos como si fuera uno real, pero en vez de mandarlos a internet, Mailpit los **atrapa** y te los muestra en una página web. Perfecto para desarrollo y demos: ves el correo salir, sin que le llegue a nadie.
-
-Levanta Mailpit con Docker (un solo comando):
-
-```bash
-docker run -d --name mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit
-```
-
-El puerto `1025` es el SMTP (por ahí le entrega tu app); el `8025` es la UI web (por ahí ves los correos, en `http://localhost:8025`).
-
-Agrega la dependencia de correo de Spring al `build.gradle.kts`:
-
-```kotlin title="build.gradle.kts (dependencies)"
-implementation("org.springframework.boot:spring-boot-starter-mail")
-```
-
-Y la configuración, con los valores por variable de entorno para poder cambiarlos en producción sin tocar el código:
-
-```yaml title="src/main/resources/application.yaml (correo)"
-spring:
-  mail:
-    host: ${SMTP_HOST:localhost}
-    port: ${SMTP_PORT:1025}
-    username: ${SMTP_USER:}
-    password: ${SMTP_PASSWORD:}
-    properties:
-      mail.smtp.auth: false
-      mail.smtp.starttls.enable: false
-```
-
-!!! note "Los `:` con valor por defecto"
-    `${SMTP_HOST:localhost}` significa "usa la variable `SMTP_HOST`, y si no existe, `localhost`". Así en tu máquina apunta a Mailpit sin configurar nada, y en la nube le pones las variables del proveedor real.
-
-Un componente que arma y manda el correo:
-
-```kotlin title="notification/domain/EmailNotifier.kt"
-package com.baqjug.wallet.notification.domain
-
-import com.baqjug.wallet.movement.domain.MovimientoRegistrado
-import org.springframework.mail.SimpleMailMessage
-import org.springframework.mail.javamail.JavaMailSender
-import org.springframework.stereotype.Component
-
-@Component
-class EmailNotifier(
-    private val mailSender: JavaMailSender
-) {
-    fun enviar(evento: MovimientoRegistrado) {
-        val mensaje = SimpleMailMessage().apply {
-            from = "wallet@baqjug.com"
-            setTo("elena@example.com")
-            subject = "Movimiento en tu wallet"
-            text = "Se movieron ${evento.amount} de la cuenta ${evento.fromId} a la ${evento.toId}."
-        }
-        mailSender.send(mensaje)
-    }
-}
-```
-
-!!! abstract "Spring al paso: `JavaMailSender`"
-    `JavaMailSender` es la herramienta de Spring para mandar correos. La autoconfigura Boot a partir de las propiedades `spring.mail.*` que pusiste; tú solo la inyectas. `SimpleMailMessage` es un correo de texto plano: destinatario, asunto y cuerpo. Para HTML o adjuntos usarías `MimeMessage`, pero para el aviso nos sobra con esto.
-
-Y el listener de la Fase 7 ahora llama a este notificador en vez de solo loguear:
-
-```kotlin title="notification/messaging/MovimientoNotificationListener.kt"
-package com.baqjug.wallet.notification.messaging
-
-import com.baqjug.wallet.movement.domain.MovimientoRegistrado
-import com.baqjug.wallet.notification.domain.EmailNotifier
-import org.springframework.kafka.annotation.KafkaListener
-import org.springframework.stereotype.Component
-
-@Component
-class MovimientoNotificationListener(
-    private val emailNotifier: EmailNotifier
-) {
-
-    @KafkaListener(topics = ["wallet.movements"], groupId = "notification")
-    fun onMovimiento(evento: MovimientoRegistrado) {
-        emailNotifier.enviar(evento)
-    }
-}
-```
-
-Haz una transferencia como en la Fase 3 y abre `http://localhost:8025`: ahí está el correo, atrapado por Mailpit.
-
-!!! note "Si hiciste la Fase 9"
-    Partimos del listener base de la Fase 7 para mantenerlo simple. Si hiciste la Fase 9 (coroutines), el envío del correo sería una de las llamadas dentro del `coroutineScope`, en paralelo con el push y el antifraude. La idea es la misma; cambia solo cómo se orquesta.
-
-!!! danger "Mailpit es solo para local y demo"
-    En producción **no** usas Mailpit: apuntas `SMTP_HOST`, `SMTP_PORT` y las credenciales a un proveedor real (SendGrid, Amazon SES, Mailgun). El código no cambia ni una línea; solo cambian las variables de entorno. Ese es el punto de haberlas dejado configurables.
-
-## Parte 2 — Empaquetar la app en una imagen Docker
+## Parte 1 — Empaquetar la app en una imagen Docker
 
 Para que la wallet corra en cualquier lado igual que en tu máquina, la metemos en una **imagen Docker**: un paquete con la app y todo lo que necesita para arrancar.
 
@@ -130,7 +36,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 !!! note "Alternativa sin Dockerfile"
     Spring Boot puede armar la imagen solo, con `./gradlew bootBuildImage` (usa buildpacks, sin escribir un Dockerfile). Cualquiera de las dos sirve; el Dockerfile es más explícito y portable entre hosts, por eso lo mostramos.
 
-## Parte 3 — El pipeline de integración continua (GitHub Actions)
+## Parte 2 — El pipeline de integración continua (GitHub Actions)
 
 Queremos que cada cambio se compile y se testee solo, antes de desplegar nada.
 
@@ -165,7 +71,7 @@ jobs:
 !!! abstract "Spring al paso: por qué los tests corren sin infra"
     ¿Te acuerdas del test de la Fase 4 con MockK? Corre sin base ni broker, así que el runner de GitHub lo ejecuta sin levantar Supabase ni Redpanda. Los tests que sí necesitan infra real (con Testcontainers) también corren en Actions, porque el runner tiene Docker; eso ya es un paso más avanzado.
 
-## Parte 4 — Desplegar a Render (o Railway)
+## Parte 3 — Desplegar a Render (o Railway)
 
 Render y Railway despliegan tu imagen Docker directo desde el repo. La forma más simple para un taller es dejar que **el propio host construya y despliegue** con cada `push` a `main`:
 
@@ -190,7 +96,7 @@ Así queda un reparto limpio: **GitHub Actions hace el CI** (compila y testea) y
 !!! warning "La UI de estos hosts cambia seguido"
     Los pasos exactos de Render/Railway (nombres de botones, capa gratis) cambian con el tiempo. Toma esto como el mapa —conectar repo, elegir Docker, poner variables, deploy con push— y confirma el detalle en su documentación al momento de hacerlo.
 
-## Parte 5 — Variables de entorno y secretos, en un solo lugar mental
+## Parte 4 — Variables de entorno y secretos, en un solo lugar mental
 
 El código nunca sabe un secreto; lo lee del entorno. Lo que cambia es **quién** pone esas variables en cada lado:
 

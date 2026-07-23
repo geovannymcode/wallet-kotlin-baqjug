@@ -1,4 +1,4 @@
-# Fase 8 · Qué sigue
+# Fase 8 · De demo a producción
 
 **Rama**: no hay commit obligatorio, es referencia. Pero acá sí hay código, porque estos tres temas se entienden mejor viéndolos que oyéndolos.
 
@@ -11,6 +11,9 @@ Lo que armamos funciona y enseña bien los conceptos, pero tiene atajos que conv
 Mira el orden que quedó en `transfer`: primero movemos la plata en la base (transacción), después publicamos el evento al broker. Son dos sistemas distintos, la base y Redpanda, y no comparten transacción. ¿Qué pasa si la plata se guarda pero el proceso se muere antes de publicar? La transferencia ocurrió y nadie se enteró. Al revés es peor: si publicaras antes de guardar y el guardado falla, avisaste de algo que no pasó.
 
 Esto se llama el problema del **doble guardado** (dual write): escribir en dos lados sin una transacción que los cubra a ambos.
+
+!!! abstract "Nivel senior: ¿y por qué no meto los dos en una sola transacción?"
+    Es la primera pregunta que salta: "pongo el `moveMoney` y el `kafkaTemplate.send` dentro del mismo `@Transactional` y ya". No sirve. Una transacción de base de datos solo cubre **la base**; el broker es otro sistema, con su propia noción de "confirmado", y no comparten commit. Sí existe un mecanismo para coordinar dos sistemas —transacciones distribuidas, XA / *two-phase commit*—, pero es pesado, frágil bajo fallos y Kafka no lo soporta bien. La salida pragmática no es coordinar dos sistemas, sino **convertir el problema de dos sistemas en uno de un solo sistema** (la base). Eso es, exactamente, lo que hace el outbox.
 
 !!! abstract "Concepto al paso: el patrón outbox"
     La idea es no publicar directo al broker. En vez de eso, escribes el evento en una tabla `outbox` **dentro de la misma transacción** que mueve la plata. O se guardan las dos cosas, o ninguna: la base sí sabe hacer eso. Después, un proceso aparte lee esa tabla y publica al broker con reintentos, marcando cada fila como enviada. El evento y el cambio de datos quedan pegados.
@@ -82,6 +85,15 @@ class OutboxRelay(
 
 !!! note "Por qué no lo metimos en el taller en vivo"
     El outbox agrega una tabla, un relay con `@Scheduled` y serialización a mano. Para 60 minutos, habría tapado el concepto central (publicar y consumir) con plomería. Pero en algo con plata, el outbox no es opcional: es la diferencia entre "casi siempre avisa" y "siempre avisa".
+
+!!! abstract "Nivel senior: qué garantiza el relay (y qué no)"
+    El outbox te da entrega **at-least-once** (al menos una vez), no *exactly-once*. Mira el caso: el relay publica la fila al broker, pero se muere justo antes de marcar `sent_at`. Al reiniciar, la vuelve a ver como pendiente y la publica otra vez. El evento salió dos veces. Eso **no** es un defecto del outbox: es el precio de no tener transacción distribuida. Por eso el outbox y la **idempotencia** (lo que sigue) son socios: el productor promete "esto sale al menos una vez", y el consumidor promete "procesarlo dos veces no cambia el resultado". Juntos te dan el efecto de *exactly-once* sin la magia que no existe.
+
+!!! abstract "Nivel senior: el orden y varias instancias del relay"
+    Dos detalles que muerden en producción. El **orden**: publicamos por `created_at` y usamos `msg_key` (la cuenta de origen), así los eventos de una misma cuenta salen en orden y caen en la misma partición. Y las **instancias**: si corres la app replicada, dos relays podrían tomar la misma fila y publicarla doble. Se resuelve con `SELECT ... FOR UPDATE SKIP LOCKED`: cada relay agarra un lote de filas y las bloquea, y los demás **se saltan** las que ya están bloqueadas en vez de esperarlas. Con Spring Data lo expresas con `@Lock(LockModeType.PESSIMISTIC_WRITE)` y `@QueryHints` para el *skip locked*.
+
+!!! abstract "Nivel senior: polling vs CDC (Debezium)"
+    Nuestro relay hace **polling**: pregunta cada 2 segundos "¿hay filas nuevas?". Simple y suficiente para la mayoría, a costa de algo de latencia y de consultar la tabla en vano cuando no hay nada. La alternativa industrial es **CDC** (Change Data Capture) con **Debezium**: en vez de sondear, lee el **log de transacciones** de Postgres (el WAL) y publica los cambios de la tabla `outbox` al broker apenas ocurren, sin polling y con menos latencia. Es más infraestructura; para un servicio mediano, el relay con `@Scheduled` cumple de sobra. Saber que Debezium existe es lo que te deja decidir con criterio, no por moda.
 
 ## 2. Idempotencia: procesar el mismo evento dos veces sin romperlo
 

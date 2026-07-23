@@ -53,6 +53,9 @@ Kotlin resuelve esto con **coroutines**. La pieza central es la **función suspe
 
 Una función suspendida se marca con la palabra `suspend`. Y hay una regla: una `suspend fun` **solo se puede llamar desde otra `suspend fun`** o desde una coroutine. Es el compilador diciéndote "esto puede pausarse, quien la llame tiene que saberlo".
 
+!!! abstract "Nivel senior: qué hace el compilador con `suspend`"
+    "Pausar y retomar" suena a magia, pero no lo es. Cuando marcas una función con `suspend`, el compilador de Kotlin la reescribe como una **máquina de estados**: la parte en trozos, uno por cada punto donde puede suspenderse, y en cada punto guarda "por dónde iba" en un objeto llamado **continuation** (la continuación). Cuando la operación que esperabas termina, alguien invoca esa continuation y la función **retoma justo donde quedó**, quizás en otro hilo. No hay un hilo bloqueado esperando: hay un objeto guardado en memoria y una llamada de vuelta. Tú escribes código secuencial de arriba a abajo, y el compilador arma el rompecabezas por detrás. A eso se le llama *continuation-passing style*, y es lo que hace que las coroutines se lean como código normal sin caer en el infierno de callbacks.
+
 ## Correr las tres llamadas en paralelo
 
 Ahora la parte bonita: como las tres llamadas son independientes, las lanzamos **a la vez** y esperamos a que todas terminen. Para eso hay tres herramientas.
@@ -61,6 +64,12 @@ Ahora la parte bonita: como las tres llamadas son independientes, las lanzamos *
     - **`coroutineScope { ... }`** crea un espacio para lanzar coroutines hijas. No retorna hasta que **todas** terminan. Y si una falla, cancela las demás y propaga el error. Eso es *concurrencia estructurada*: no quedan tareas huérfanas corriendo por ahí.
     - **`async { ... }`** lanza una coroutine que calcula un valor y te devuelve un `Deferred<T>`, una especie de "promesa" de ese valor.
     - **`awaitAll(...)`** (o `.await()` sobre un solo `Deferred`) espera a que los resultados estén listos.
+
+!!! abstract "Nivel senior: concurrencia estructurada y cancelación"
+    `coroutineScope` no es solo "espera a que todas terminen". Impone una jerarquía padre-hijas con reglas estrictas: si **una** hija falla, el scope cancela a las hermanas y propaga la excepción hacia arriba; y si cancelas el padre (por ejemplo, la petición se abortó o hubo timeout), la cancelación **baja** a todas las hijas. Nada queda corriendo huérfano quemando recursos. Compara con lanzar tres hilos a mano: si uno explota, los otros dos siguen vivos y nadie los vigila. Esa disciplina —que la vida de las tareas hijas esté atada a la del padre— es lo que hace *estructurada* a la concurrencia estructurada, y es el mayor salto conceptual frente a los hilos crudos o los `Future` sueltos.
+
+!!! note "`async` vs `launch`"
+    Usamos `async` porque queremos un **resultado** (`Deferred<T>`) que después esperamos con `await`. Cuando solo quieres disparar trabajo y no te importa un valor de vuelta, se usa `launch`, que devuelve un `Job` sin resultado. Regla simple: `async` si vas a esperar un valor, `launch` si es "dispara y sigue".
 
 Con eso, el servicio queda así:
 
@@ -133,6 +142,20 @@ class MovimientoNotificationListener(
 
 !!! abstract "Spring al paso: `@KafkaListener suspend fun`"
     El método del listener es `suspend`, y con eso puede llamar a `notificationService.notificar(...)`, que también es `suspend`. Spring for Apache Kafka (desde la versión 3.2) detecta que el listener es suspendido y lo corre en una coroutine, sin que tú montes nada más. Así la cadena entera —listener → servicio → clientes HTTP— es no bloqueante de punta a punta.
+
+## En qué hilo corre esto: los dispatchers
+
+Una coroutine, tarde o temprano, corre sobre un hilo real. Quién lo decide es el **dispatcher**.
+
+!!! abstract "Concepto al paso: dispatcher"
+    Un dispatcher es la política de "sobre qué hilos corre esta coroutine". Los tres que verás:
+
+    - **`Dispatchers.Default`**: un pool del tamaño de tus núcleos, para trabajo que quema CPU (cálculos pesados).
+    - **`Dispatchers.IO`**: un pool grande y elástico, pensado para operaciones **bloqueantes** de entrada/salida que no pudiste hacer suspendidas (una librería vieja, JDBC).
+    - **`Dispatchers.Main`**: el hilo de interfaz (en apps de escritorio o móvil; en un backend no aplica).
+
+!!! danger "Nivel senior: la regla de oro — nunca bloquees dentro de una coroutine"
+    Este es el error clásico que hace que "puse coroutines y no mejoró nada". Si dentro de una `suspend fun` llamas a código **bloqueante** (una consulta JDBC, un `Thread.sleep`, una librería que no es suspendida), amarras el hilo del dispatcher y tumbas todo el beneficio: ese pool es chico y se te llena de hilos congelados. Si **tienes** que llamar algo bloqueante, lo aíslas con `withContext(Dispatchers.IO) { ... }`, que mueve solo ese pedazo a un pool preparado para esperar. La otra salida moderna son los **virtual threads**, que hacen ese bloqueo barato. Por eso coroutines y virtual threads se llevan bien, no compiten.
 
 ## ¿Y los virtual threads?
 

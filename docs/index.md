@@ -49,7 +49,7 @@ Cada fase es una etapa y, en el repo, una rama. Puedes hacer `git checkout` a cu
 | 5 | `fase-5` | Por qué eventos: broker, topic, producer, consumer |
 | 6 | `fase-6` | Publicar el evento con Redpanda |
 | 7 | `fase-7` = `main` | Consumir el evento desde otro servicio |
-| 8 | (referencia) | Qué sigue: outbox, idempotencia, DLQ |
+| 8 | (referencia) | De demo a producción: outbox, idempotencia, DLQ |
 
 !!! tip "Puedes entrar por cualquier fase"
     Cada rama deja el proyecto justo en el estado de esa fase. Si te perdiste en un paso, `git checkout fase-2` y sigues desde ahí sin quedarte atrás. Y si lo que te interesa es directamente la parte de eventos, `git checkout fase-4` te pone en la línea de salida con toda la base REST ya lista. La rama `main` es la versión final con eventos.
