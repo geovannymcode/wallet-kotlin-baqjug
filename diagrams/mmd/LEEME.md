@@ -10,6 +10,8 @@ Cada `.mmd` de esta carpeta es un diagrama listo para pegar en Excalidraw:
 | `Img_4.mmd` | `docs/img/Img_4.png` | class | 2, 3 | nuevo (modelo de la feature account) |
 | `Img_5.mmd` | `docs/img/Img_5.png` | sequence | 8 | nuevo (patrón outbox) |
 | `Img_6.mmd` | `docs/img/Img_6.png` | sequence | 9 | nuevo (coroutines en paralelo) |
+| `Img_9.mmd` | `docs/img/Img_9.png` | flowchart | inicio | resumen flujo síncrono |
+| `Img_10.mmd` | `docs/img/Img_10.png` | flowchart | inicio | resumen flujo por eventos |
 
 `Img_0.png` (arquitectura) e `Img_3.png` (antes/después) se quedan como están.
 

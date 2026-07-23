@@ -15,17 +15,13 @@ Una wallet, **`wallet`**, con tres cosas que hace cualquier billetera:
 - Transferir plata de una cuenta a otra, validando que haya saldo.
 - Dejar registrado cada movimiento.
 
-A vista de pájaro, la wallet es esto: unos clientes entran por HTTP a una aplicación REST, y esa aplicación lee y escribe en una base de datos Postgres. Nada más. Toda la magia de las siguientes fases pasa dentro de esa caja del medio.
+A vista de pájaro, la wallet es simple: unos clientes entran por HTTP a una aplicación, y esa aplicación lee y escribe en una base Postgres. La arquitectura la ves en detalle en la [Fase 0](fase-00-arranque.md); acá basta la idea. Toda la magia pasa dentro de esa aplicación, y adentro, el registro de cada movimiento arranca de la forma más simple posible: una llamada directa dentro del mismo proceso.
 
-![Arquitectura general: los clientes (consumers) hacen peticiones REST a la aplicación wallet, que a través de ORM/JPA lee y escribe las tablas de cuentas y transferencias en la base de datos Postgres](img/Img_0.png)
-
-Esa caja del medio, la aplicación, es donde vive todo lo que vamos a escribir. Y adentro, el registro de cada movimiento arranca de la forma más simple posible: una llamada directa dentro del mismo proceso.
-
-![Flujo síncrono: la petición REST entra a transfer, que valida el saldo y debita/acredita en account, y registra el movimiento en movement con una llamada directa dentro del mismo proceso](img/Img_1.png)
+![Resumen del flujo síncrono: la petición REST entra a transfer, que valida y mueve el saldo en account, y registra el movimiento en movement con una llamada directa dentro del mismo proceso](img/Img_9.png)
 
 En la parte de eventos, el registro deja de ser una llamada directa y pasa a publicarse:
 
-![Flujo por eventos: transfer publica el evento MovimientoRegistrado en el topic de Redpanda, y dos grupos de consumidores lo reciben cada uno por su cuenta: notification (envía el correo) y movement (guarda el registro)](img/Img_2.png)
+![Resumen del flujo por eventos: transfer mueve el saldo en account y publica el evento MovimientoRegistrado en Redpanda, que notification consume y notifica](img/Img_10.png)
 
 El cambio se ve chico en el diagrama, pero es el corazón de la segunda parte: `transfer` deja de saber quién registra o notifica. Solo suelta un evento. Quién lo escuche, y cuántos lo escuchen, ya no es su problema.
 
