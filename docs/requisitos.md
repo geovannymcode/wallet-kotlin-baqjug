@@ -1,6 +1,6 @@
 # Requisitos y setup
 
-La idea de este taller es que nadie pierda 20 minutos peleando con Docker o con una base que no arranca. Todo el stack de infraestructura corre en la nube y se configura desde el navegador: Supabase para Postgres y Redpanda para los eventos. Lo único que instalas en tu máquina es lo de siempre para programar en Kotlin.
+La idea de este taller es que nadie pierda 20 minutos peleando con infraestructura que no arranca. El grueso del stack corre en la nube y se configura desde el navegador: Supabase para Postgres y Redpanda para los eventos. Docker aparece solo en las fases finales —el correo de prueba con Mailpit (Fase 7) y la imagen de la app (Fase 10)—; lo demás es lo de siempre para programar en Kotlin.
 
 ## En tu máquina
 
@@ -10,8 +10,9 @@ La idea de este taller es que nadie pierda 20 minutos peleando con Docker o con 
 | **IntelliJ IDEA** | Community o Ultimate | El IDE. Community alcanza de sobra |
 | **Git** | cualquiera reciente | Clonar el repo y moverte entre fases |
 | Un cliente REST | Bruno, Postman o `curl` | Probar los endpoints |
+| **Docker** | reciente | Solo desde la Fase 7: el correo de prueba (Mailpit) y empaquetar la app |
 
-Nada de Docker. Nada de una base local. Si ya programas en Java o Kotlin, seguro tienes casi todo esto.
+La base y el broker viven en la nube, así que no montas nada local para eso. Docker no lo necesitas al arrancar: entra en juego recién en la Fase 7 (correo con Mailpit) y en la Fase 10 (despliegue). Si ya programas en Java o Kotlin, seguro tienes casi todo esto.
 
 ## En la nube (se configura en vivo, gratis)
 
