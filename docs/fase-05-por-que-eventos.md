@@ -1,6 +1,6 @@
 # Fase 5 · Por qué eventos
 
-**Rama**: no hay código nuevo en esta fase, es la que te da el mapa mental. Si vienes llegando a CaribeConf, arranca leyendo esta.
+**Rama**: no hay código nuevo en esta fase, es la que te da el mapa mental. Si vas a saltar directo a la parte de eventos, arranca leyendo esta.
 
 **Lo que vas a lograr**: entender qué problema resuelve la mensajería por eventos y el vocabulario mínimo (broker, topic, producer, consumer, grupo, offset) antes de escribir una línea.
 
@@ -24,19 +24,7 @@ Funciona. El problema aparece cuando el negocio crece. A una transferencia real,
 
 La mensajería por eventos corta ese nudo. En vez de que `transfer` llame a cada interesado, publica un hecho, "se registró un movimiento", y se desentiende. Los interesados escuchan por su cuenta.
 
-```
-Antes (acoplado):
-transfer → movement
-        → correo
-        → push
-        → antifraude
-
-Después (por eventos):
-transfer → [ evento: MovimientoRegistrado ] → broker
-                                                 ├── movement escucha y guarda
-                                                 ├── notificación escucha y avisa
-                                                 └── antifraude escucha y revisa
-```
+![Antes (acoplado): transfer llama directo a movement, correo, push y antifraude. Después (por eventos): transfer solo publica el evento MovimientoRegistrado en el broker, y movement, notificación y antifraude lo escuchan cada uno por su cuenta](img/Img_3.png)
 
 `transfer` ya no sabe quién escucha ni cuántos. Publica y sigue. Ese es todo el truco, y cambia cómo crece el sistema.
 

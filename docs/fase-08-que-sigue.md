@@ -31,37 +31,38 @@ CREATE TABLE outbox (
 
 En vez de publicar, `transfer` guarda la fila en la misma transacción del movimiento. Fíjate que ahora el método sí es `@Transactional`, y adentro pasan las dos cosas juntas:
 
-```kotlin title="transfer/internal/DefaultTransferService.kt (con outbox)"
+```kotlin title="transfer/domain/TransferService.kt (con outbox)"
 @Service
-class DefaultTransferService(
+class TransferService(
     private val accountService: AccountService,
     private val outbox: OutboxRepository,
     private val mapper: ObjectMapper
-) : TransferService {
+) {
 
     @Transactional
-    override fun transfer(request: TransferRequest): MoveResult {
+    fun transfer(request: TransferRequest) {
         require(request.fromId != request.toId) { "No puedes transferir a la misma cuenta" }
-        val result = accountService.moveMoney(request.fromId, request.toId, request.amount)
-
-        if (result is MoveResult.Success) {
-            val evento = MovimientoRegistrado(request.fromId, request.toId, request.amount)
-            outbox.save(
-                OutboxEvent(
-                    topic = "wallet.movements",
-                    msgKey = evento.fromId.toString(),
-                    payload = mapper.writeValueAsString(evento)
+        when (val result = accountService.moveMoney(request.fromId, request.toId, request.amount)) {
+            is MoveResult.Success -> {
+                val evento = MovimientoRegistrado(request.fromId, request.toId, request.amount)
+                outbox.save(
+                    OutboxEvent(
+                        topic = "wallet.movements",
+                        msgKey = evento.fromId.toString(),
+                        payload = mapper.writeValueAsString(evento)
+                    )
                 )
-            )
+            }
+            is MoveResult.InsufficientFunds -> throw InsufficientFundsException()
+            is MoveResult.AccountNotFound -> throw AccountNotFoundException(result.id)
         }
-        return result
     }
 }
 ```
 
 Y un relay que corre aparte, lee lo no enviado y publica:
 
-```kotlin title="transfer/internal/OutboxRelay.kt"
+```kotlin title="transfer/messaging/OutboxRelay.kt"
 @Component
 class OutboxRelay(
     private val outbox: OutboxRepository,
@@ -91,7 +92,7 @@ Un broker puede reentregar un evento. No es un bug, es cómo funciona: ante un r
 
 La forma directa: darle un `id` único a cada evento y llevar registro de cuáles ya procesaste.
 
-```kotlin title="movement/api/MovimientoRegistrado.kt (con id)" hl_lines="2"
+```kotlin title="movement/domain/MovimientoRegistrado.kt (con id)" hl_lines="2"
 data class MovimientoRegistrado(
     val eventId: UUID = UUID.randomUUID(),
     val fromId: UUID,
@@ -111,7 +112,7 @@ CREATE TABLE processed_events (
 
 El listener chequea, procesa y marca, todo en una transacción:
 
-```kotlin title="movement/internal/MovimientoPersistenceListener.kt (idempotente)"
+```kotlin title="movement/messaging/MovimientoPersistenceListener.kt (idempotente)"
 @KafkaListener(topics = ["wallet.movements"], groupId = "movement")
 @Transactional
 fun onMovimiento(evento: MovimientoRegistrado) {
@@ -158,11 +159,13 @@ class KafkaErrorConfig {
 ## Lo que quedó por fuera, en una línea cada uno
 
 - **Concurrencia sobre la misma cuenta.** Dos transferencias en paralelo sobre la misma cuenta pueden pisarse. Se resuelve con bloqueo optimista: una columna `@Version` en `Account` hace que la segunda transacción en confirmar falle y se reintente con el saldo fresco.
-- **Separar los servicios de verdad.** Productor y consumidores viven hoy en la misma app por comodidad. Como `transfer` solo publica un evento y no conoce a nadie, sacar `notification` a su propio despliegue es mover el listener a otro proyecto suscrito al mismo topic. El evento en `movement/api` es el contrato compartido.
+- **Separar los servicios de verdad.** Productor y consumidores viven hoy en la misma app por comodidad. Como `transfer` solo publica un evento y no conoce a nadie, sacar `notification` a su propio despliegue es mover el listener a otro proyecto suscrito al mismo topic. El evento en `movement/domain` es el contrato compartido.
 - **Observabilidad.** Cuando un evento cruza servicios, querrás un `trace-id` que viaje con él, para seguir una transferencia desde el `POST` hasta la notificación aunque hayan pasado por tres procesos.
 
 ## Lo que te llevas
 
 Construiste una wallet que mueve plata de forma transaccional, la expusiste por REST, y desacoplaste el registro y la notificación con eventos sobre Redpanda, con consumidores independientes que reaccionan sin conocerse. Y ahora sabes qué le falta para producción, con código, no con handwaving: outbox para no perder eventos, idempotencia para no duplicarlos, y DLQ para no atascarte con uno malo.
+
+¿Quieres exprimir más el lado Kotlin? En la [Fase 9](fase-09-coroutines.md) —avanzada y opcional— tomamos el consumidor bloqueante de la Fase 7 y lo llevamos a **coroutines**, para cuando un consumidor tiene que llamar a varios servicios externos sin bloquear un hilo por cada espera.
 
 Revisa las [Referencias](referencias.md) para seguir por tu cuenta.

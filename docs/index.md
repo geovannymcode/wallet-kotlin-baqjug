@@ -2,11 +2,6 @@
 
 Esta guía construye desde cero una billetera digital en Kotlin y Spring Boot. Empezamos con un endpoint REST que mueve plata entre dos cuentas contra una base Postgres, y terminamos con ese mismo movimiento viajando como un evento que otro servicio consume. Se puede seguir sola, de principio a fin.
 
-El material sirve para dos talleres distintos con **un solo proyecto**:
-
-- En **BAQJUG / IDITEK** cubrimos de la Fase 0 a la Fase 4: la wallet funcionando por REST, con transferencias, validación de saldo y registro de movimientos contra Supabase.
-- En **CaribeConf** arrancamos también desde cero, pero el foco es la última parte: convertir ese registro de movimientos en un evento y consumirlo desde otro servicio con Redpanda.
-
 Si nunca tocaste Kotlin, tranquilo: vamos explicando cada cosa del lenguaje la primera vez que aparece. Si vienes de Kotlin pero nunca hiciste Spring, igual: cada anotación y cada pieza de infraestructura se explica cuando entra en juego. No asumo que porque lees una cosa ya sabes la otra.
 
 !!! note "Esto no es un 'hola mundo'"
@@ -20,21 +15,17 @@ Una wallet, **`wallet`**, con tres cosas que hace cualquier billetera:
 - Transferir plata de una cuenta a otra, validando que haya saldo.
 - Dejar registrado cada movimiento.
 
-Al principio, ese registro es una llamada directa dentro del mismo proceso:
+A vista de pájaro, la wallet es esto: unos clientes entran por HTTP a una aplicación REST, y esa aplicación lee y escribe en una base de datos Postgres. Nada más. Toda la magia de las siguientes fases pasa dentro de esa caja del medio.
 
-```
-[ REST ] → transfer → account (valida saldo, debita/acredita)
-                    → movement (registra el movimiento)   ← llamada directa
-```
+![Arquitectura general: los clientes (consumers) hacen peticiones REST a la aplicación wallet, que a través de ORM/JPA lee y escribe las tablas de cuentas y transferencias en la base de datos Postgres](img/Img_0.png)
+
+Esa caja del medio, la aplicación, es donde vive todo lo que vamos a escribir. Y adentro, el registro de cada movimiento arranca de la forma más simple posible: una llamada directa dentro del mismo proceso.
+
+![Flujo síncrono: la petición REST entra a transfer, que valida el saldo y debita/acredita en account, y registra el movimiento en movement con una llamada directa dentro del mismo proceso](img/Img_1.png)
 
 En la parte de eventos, el registro deja de ser una llamada directa y pasa a publicarse:
 
-```
-[ REST ] → transfer → account
-                    → publica "MovimientoRegistrado"  →  [ Redpanda ]
-                                                              │
-                                        notification (consume y "notifica")
-```
+![Flujo por eventos: transfer mueve el saldo en account y publica el evento MovimientoRegistrado en Redpanda; notification lo consume desde el otro lado y notifica](img/Img_2.png)
 
 El cambio se ve chico en el diagrama, pero es el corazón de la segunda parte: `transfer` deja de saber quién registra o notifica. Solo suelta un evento. Quién lo escuche, y cuántos lo escuchen, ya no es su problema.
 
@@ -48,23 +39,20 @@ La mensajería por eventos corta ese nudo. `transfer` publica un hecho, "esto pa
 
 Cada fase es una etapa y, en el repo, una rama. Puedes hacer `git checkout` a cualquiera para seguir desde ahí si te atrasas.
 
-| Fase | Rama | Qué construye | Evento |
-|------|------|----------------|--------|
-| 0 | `fase-0` | El problema, el andamiaje y Supabase | IDITEK |
-| 1 | `fase-1` | El dominio: cuenta, saldo, JPA y Flyway | IDITEK |
-| 2 | `fase-2` | Exponer el saldo por REST | IDITEK |
-| 3 | `fase-3` | Transferencia con validación de saldo | IDITEK |
-| 4 | `fase-4` | Registro de movimientos (llamada directa) | IDITEK |
-| 5 | `fase-5` | Por qué eventos: broker, topic, producer, consumer | CaribeConf |
-| 6 | `fase-6` | Publicar el evento con Redpanda | CaribeConf |
-| 7 | `fase-7` = `main` | Consumir el evento desde otro servicio | CaribeConf |
-| 8 | (referencia) | Qué sigue: outbox, idempotencia, DLQ | CaribeConf |
+| Fase | Rama | Qué construye |
+|------|------|----------------|
+| 0 | `fase-0` | El problema, el andamiaje y Supabase |
+| 1 | `fase-1` | El dominio: cuenta, saldo, JPA y Flyway |
+| 2 | `fase-2` | Exponer el saldo por REST |
+| 3 | `fase-3` | Transferencia con validación de saldo |
+| 4 | `fase-4` | Registro de movimientos (llamada directa) |
+| 5 | `fase-5` | Por qué eventos: broker, topic, producer, consumer |
+| 6 | `fase-6` | Publicar el evento con Redpanda |
+| 7 | `fase-7` = `main` | Consumir el evento desde otro servicio |
+| 8 | (referencia) | Qué sigue: outbox, idempotencia, DLQ |
 
-!!! tip "Si solo vienes a CaribeConf"
-    Arrancas desde cero igual. Las Fases 0 a 4 quedan documentadas acá como referencia: puedes leerlas antes o hacer `git checkout fase-4` para ponerte en la línea de salida de la parte de eventos. En el taller en vivo pasamos rápido por esa base y le dedicamos el tiempo a lo nuevo, publicar y consumir eventos.
-
-!!! tip "Para seguir a tu ritmo en cualquiera de los dos"
-    Cada rama deja el proyecto justo en el estado de esa fase. Si te perdiste en un paso, `git checkout fase-2` y sigues desde ahí sin quedarte atrás. La rama `main` es la versión final con eventos.
+!!! tip "Puedes entrar por cualquier fase"
+    Cada rama deja el proyecto justo en el estado de esa fase. Si te perdiste en un paso, `git checkout fase-2` y sigues desde ahí sin quedarte atrás. Y si lo que te interesa es directamente la parte de eventos, `git checkout fase-4` te pone en la línea de salida con toda la base REST ya lista. La rama `main` es la versión final con eventos.
 
 ## Versiones
 

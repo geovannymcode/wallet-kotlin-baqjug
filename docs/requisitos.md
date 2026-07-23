@@ -23,7 +23,7 @@ Supabase te da un Postgres gestionado detrás de un login con GitHub. Lo configu
 2. Guarda la contraseña de la base que te pide al crear el proyecto.
 3. En **Project Settings → Database** vas a encontrar la cadena de conexión. Esa es la que le pasamos a Spring.
 
-### Redpanda (solo para CaribeConf, la parte de eventos)
+### Redpanda (para la parte de eventos)
 
 Redpanda es un broker compatible con el protocolo de Kafka, más liviano y sin Zookeeper. Para no depender de que cada quien tenga Docker corriendo, usamos **Redpanda Serverless**, que también vive en la nube y se configura desde el navegador. Lo hacemos en la Fase 6.
 
@@ -31,12 +31,6 @@ Redpanda es un broker compatible con el protocolo de Kafka, más liviano y sin Z
 2. Guarda el **bootstrap server** y las credenciales SASL (usuario y contraseña) que te genera.
 
 !!! note "Alternativa local con Docker"
-    Si estás en un laboratorio con PCs que ya tienen Docker (como en IDITEK), puedes levantar Redpanda local con `rpk container start` en vez de la nube. La guía usa la versión Serverless por defecto porque no controlo las laptops en un evento internacional, pero el código es el mismo; solo cambian las propiedades de conexión.
-
-## Qué le pido a cada organizador
-
-**IDITEK.** Laboratorio con PCs que tengan JDK 25, IntelliJ y Git. Internet estable para Supabase. No hace falta Docker si usamos Supabase para la base; si quieres que la parte de eventos también se vea en vivo ese día, con Docker en las máquinas podemos usar Redpanda local.
-
-**CaribeConf.** Nada instalado de mi parte en las máquinas de los asistentes: el taller corre con JDK 25 e IntelliJ (o cualquier IDE con soporte Kotlin) más una conexión a internet. Supabase y Redpanda Serverless se configuran desde el navegador al inicio. Aviso a los asistentes de traer JDK 25 y un IDE listo, porque no controlo su setup.
+    Si tienes Docker a mano, puedes levantar Redpanda local con `rpk container start` en vez de la nube. La guía usa la versión Serverless por defecto para no depender de que cada quien tenga Docker, pero el código es el mismo; solo cambian las propiedades de conexión.
 
 Con esto listo, arranca por la [Fase 0](fase-00-arranque.md).

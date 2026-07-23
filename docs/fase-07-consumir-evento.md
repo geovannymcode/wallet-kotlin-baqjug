@@ -5,15 +5,19 @@
 
 ---
 
-## Parte 1 — Configurar el consumidor (5 min)
+## Parte 1 — Configurar el consumidor
 
-Súmale al `application.properties` el lado consumidor. El productor mandaba JSON; el consumidor lo reconstruye.
+Súmale al `application.yaml` el lado consumidor. El productor mandaba JSON; el consumidor lo reconstruye.
 
-```properties title="src/main/resources/application.properties (consumer)"
-spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer
-spring.kafka.consumer.value-deserializer=org.springframework.kafka.support.serializer.JsonDeserializer
-spring.kafka.consumer.properties.spring.json.trusted.packages=com.baqjug.wallet.*
-spring.kafka.consumer.auto-offset-reset=earliest
+```yaml title="src/main/resources/application.yaml (consumer)"
+spring:
+  kafka:
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "com.baqjug.wallet.*"
 ```
 
 !!! abstract "Concepto al paso: `trusted.packages` y por qué existe"
@@ -22,14 +26,14 @@ spring.kafka.consumer.auto-offset-reset=earliest
 !!! abstract "Concepto al paso: `auto-offset-reset=earliest`"
     Cuando un grupo llega por primera vez a un topic y no tiene una marca previa (offset), ¿desde dónde lee? Con `earliest`, desde el principio del log. Con `latest`, solo lo nuevo. En el taller usamos `earliest` para que un consumidor que enciendes después alcance a ver los eventos que ya publicaste.
 
-## Parte 2 — El consumidor que notifica (10 min)
+## Parte 2 — El consumidor que notifica
 
 Primera feature nueva: `notification`. Solo escucha y "avisa". Acá el aviso es un log, pero en la vida real sería un correo o un push.
 
-```kotlin title="notification/internal/MovimientoNotificationListener.kt"
-package com.baqjug.wallet.notification.internal
+```kotlin title="notification/messaging/MovimientoNotificationListener.kt"
+package com.baqjug.wallet.notification.messaging
 
-import com.baqjug.wallet.movement.api.MovimientoRegistrado
+import com.baqjug.wallet.movement.domain.MovimientoRegistrado
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
@@ -52,15 +56,15 @@ class MovimientoNotificationListener {
 !!! abstract "Spring al paso: `@KafkaListener`"
     `@KafkaListener` convierte un método en consumidor. `topics` dice qué escuchar, `groupId` a qué grupo pertenece. Spring se suscribe al arrancar, y cada vez que llega un evento, llama tu método con el objeto ya deserializado. Tú solo escribes qué hacer con él.
 
-## Parte 3 — El consumidor que guarda (10 min)
+## Parte 3 — El consumidor que guarda
 
 Acá está lo interesante. En la Fase 4, `movement` guardaba porque `transfer` lo llamaba. Ahora `movement` guarda porque **escucha el evento**, en su propio grupo. Reusa el `MovementService` que ya tenías.
 
-```kotlin title="movement/internal/MovimientoPersistenceListener.kt"
-package com.baqjug.wallet.movement.internal
+```kotlin title="movement/messaging/MovimientoPersistenceListener.kt"
+package com.baqjug.wallet.movement.messaging
 
-import com.baqjug.wallet.movement.api.MovementService
-import com.baqjug.wallet.movement.api.MovimientoRegistrado
+import com.baqjug.wallet.movement.domain.MovementService
+import com.baqjug.wallet.movement.domain.MovimientoRegistrado
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
@@ -80,9 +84,9 @@ class MovimientoPersistenceListener(
     Fíjate: `notification` está en el grupo `notification` y `movement` en el grupo `movement`. Como son grupos distintos, **cada uno recibe una copia** de cada evento. Una sola transferencia dispara un aviso y un registro, en paralelo, sin que se pisen. Si ambos estuvieran en el mismo grupo, el broker le daría el evento a uno solo. Esa diferencia es el corazón del pub/sub.
 
 !!! note "Un consumidor nuevo no toca a `transfer`"
-    Este es el pago de todo el trabajo. Agregaste dos consumidores y no tocaste una línea de `transfer`. Mañana quieres antifraude: creas otro `@KafkaListener` con su grupo y listo. `transfer` ni se entera. Compara eso con el `if` de la Fase 4, donde cada cosa nueva era editar y redesplegar `transfer`.
+    Este es el pago de todo el trabajo. Agregaste dos consumidores y no tocaste una línea de `transfer`. Mañana quieres antifraude: creas otro `@KafkaListener` con su grupo y listo. `transfer` ni se entera. Compara eso con la rama `Success` de la Fase 4, donde cada cosa nueva era editar y redesplegar `transfer`.
 
-## Parte 4 — Verlo funcionar (10 min)
+## Parte 4 — Verlo funcionar
 
 Arranca la app y haz una transferencia:
 
