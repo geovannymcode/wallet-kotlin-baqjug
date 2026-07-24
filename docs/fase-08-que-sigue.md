@@ -1,4 +1,4 @@
-# Fase 8 · Qué sigue
+# Fase 8 · De demo a producción
 
 **Rama**: no hay commit obligatorio, es referencia. Pero acá sí hay código, porque estos tres temas se entienden mejor viéndolos que oyéndolos.
 
@@ -11,6 +11,9 @@ Lo que armamos funciona y enseña bien los conceptos, pero tiene atajos que conv
 Mira el orden que quedó en `transfer`: primero movemos la plata en la base (transacción), después publicamos el evento al broker. Son dos sistemas distintos, la base y Redpanda, y no comparten transacción. ¿Qué pasa si la plata se guarda pero el proceso se muere antes de publicar? La transferencia ocurrió y nadie se enteró. Al revés es peor: si publicaras antes de guardar y el guardado falla, avisaste de algo que no pasó.
 
 Esto se llama el problema del **doble guardado** (dual write): escribir en dos lados sin una transacción que los cubra a ambos.
+
+!!! abstract "Nivel senior: ¿y por qué no meto los dos en una sola transacción?"
+    Es la primera pregunta que salta: "pongo el `moveMoney` y el `kafkaTemplate.send` dentro del mismo `@Transactional` y ya". No sirve. Una transacción de base de datos solo cubre **la base**; el broker es otro sistema, con su propia noción de "confirmado", y no comparten commit. Sí existe un mecanismo para coordinar dos sistemas —transacciones distribuidas, XA / *two-phase commit*—, pero es pesado, frágil bajo fallos y Kafka no lo soporta bien. La salida pragmática no es coordinar dos sistemas, sino **convertir el problema de dos sistemas en uno de un solo sistema** (la base). Eso es, exactamente, lo que hace el outbox.
 
 !!! abstract "Concepto al paso: el patrón outbox"
     La idea es no publicar directo al broker. En vez de eso, escribes el evento en una tabla `outbox` **dentro de la misma transacción** que mueve la plata. O se guardan las dos cosas, o ninguna: la base sí sabe hacer eso. Después, un proceso aparte lee esa tabla y publica al broker con reintentos, marcando cada fila como enviada. El evento y el cambio de datos quedan pegados.
@@ -31,37 +34,38 @@ CREATE TABLE outbox (
 
 En vez de publicar, `transfer` guarda la fila en la misma transacción del movimiento. Fíjate que ahora el método sí es `@Transactional`, y adentro pasan las dos cosas juntas:
 
-```kotlin title="transfer/internal/DefaultTransferService.kt (con outbox)"
+```kotlin title="transfer/domain/TransferService.kt (con outbox)"
 @Service
-class DefaultTransferService(
+class TransferService(
     private val accountService: AccountService,
     private val outbox: OutboxRepository,
     private val mapper: ObjectMapper
-) : TransferService {
+) {
 
     @Transactional
-    override fun transfer(request: TransferRequest): MoveResult {
+    fun transfer(request: TransferRequest) {
         require(request.fromId != request.toId) { "No puedes transferir a la misma cuenta" }
-        val result = accountService.moveMoney(request.fromId, request.toId, request.amount)
-
-        if (result is MoveResult.Success) {
-            val evento = MovimientoRegistrado(request.fromId, request.toId, request.amount)
-            outbox.save(
-                OutboxEvent(
-                    topic = "wallet.movements",
-                    msgKey = evento.fromId.toString(),
-                    payload = mapper.writeValueAsString(evento)
+        when (val result = accountService.moveMoney(request.fromId, request.toId, request.amount)) {
+            is MoveResult.Success -> {
+                val evento = MovimientoRegistrado(request.fromId, request.toId, request.amount)
+                outbox.save(
+                    OutboxEvent(
+                        topic = "wallet.movements",
+                        msgKey = evento.fromId.toString(),
+                        payload = mapper.writeValueAsString(evento)
+                    )
                 )
-            )
+            }
+            is MoveResult.InsufficientFunds -> throw InsufficientFundsException()
+            is MoveResult.AccountNotFound -> throw AccountNotFoundException(result.id)
         }
-        return result
     }
 }
 ```
 
 Y un relay que corre aparte, lee lo no enviado y publica:
 
-```kotlin title="transfer/internal/OutboxRelay.kt"
+```kotlin title="transfer/messaging/OutboxRelay.kt"
 @Component
 class OutboxRelay(
     private val outbox: OutboxRepository,
@@ -79,8 +83,21 @@ class OutboxRelay(
 }
 ```
 
+Todo el ciclo, de la transacción al broker, se ve así:
+
+![Diagrama de secuencia del patrón outbox: TransferService mueve el saldo y guarda una fila en la tabla outbox dentro de una sola transacción en Postgres; un OutboxRelay, cada 2 segundos, lee las filas no enviadas con FOR UPDATE SKIP LOCKED, las publica en Redpanda y marca sent_at](img/Img_5.png)
+
 !!! note "Por qué no lo metimos en el taller en vivo"
     El outbox agrega una tabla, un relay con `@Scheduled` y serialización a mano. Para 60 minutos, habría tapado el concepto central (publicar y consumir) con plomería. Pero en algo con plata, el outbox no es opcional: es la diferencia entre "casi siempre avisa" y "siempre avisa".
+
+!!! abstract "Nivel senior: qué garantiza el relay (y qué no)"
+    El outbox te da entrega **at-least-once** (al menos una vez), no *exactly-once*. Mira el caso: el relay publica la fila al broker, pero se muere justo antes de marcar `sent_at`. Al reiniciar, la vuelve a ver como pendiente y la publica otra vez. El evento salió dos veces. Eso **no** es un defecto del outbox: es el precio de no tener transacción distribuida. Por eso el outbox y la **idempotencia** (lo que sigue) son socios: el productor promete "esto sale al menos una vez", y el consumidor promete "procesarlo dos veces no cambia el resultado". Juntos te dan el efecto de *exactly-once* sin la magia que no existe.
+
+!!! abstract "Nivel senior: el orden y varias instancias del relay"
+    Dos detalles que muerden en producción. El **orden**: publicamos por `created_at` y usamos `msg_key` (la cuenta de origen), así los eventos de una misma cuenta salen en orden y caen en la misma partición. Y las **instancias**: si corres la app replicada, dos relays podrían tomar la misma fila y publicarla doble. Se resuelve con `SELECT ... FOR UPDATE SKIP LOCKED`: cada relay agarra un lote de filas y las bloquea, y los demás **se saltan** las que ya están bloqueadas en vez de esperarlas. Con Spring Data lo expresas con `@Lock(LockModeType.PESSIMISTIC_WRITE)` y `@QueryHints` para el *skip locked*.
+
+!!! abstract "Nivel senior: polling vs CDC (Debezium)"
+    Nuestro relay hace **polling**: pregunta cada 2 segundos "¿hay filas nuevas?". Simple y suficiente para la mayoría, a costa de algo de latencia y de consultar la tabla en vano cuando no hay nada. La alternativa industrial es **CDC** (Change Data Capture) con **Debezium**: en vez de sondear, lee el **log de transacciones** de Postgres (el WAL) y publica los cambios de la tabla `outbox` al broker apenas ocurren, sin polling y con menos latencia. Es más infraestructura; para un servicio mediano, el relay con `@Scheduled` cumple de sobra. Saber que Debezium existe es lo que te deja decidir con criterio, no por moda.
 
 ## 2. Idempotencia: procesar el mismo evento dos veces sin romperlo
 
@@ -91,7 +108,7 @@ Un broker puede reentregar un evento. No es un bug, es cómo funciona: ante un r
 
 La forma directa: darle un `id` único a cada evento y llevar registro de cuáles ya procesaste.
 
-```kotlin title="movement/api/MovimientoRegistrado.kt (con id)" hl_lines="2"
+```kotlin title="movement/domain/MovimientoRegistrado.kt (con id)" hl_lines="2"
 data class MovimientoRegistrado(
     val eventId: UUID = UUID.randomUUID(),
     val fromId: UUID,
@@ -111,7 +128,7 @@ CREATE TABLE processed_events (
 
 El listener chequea, procesa y marca, todo en una transacción:
 
-```kotlin title="movement/internal/MovimientoPersistenceListener.kt (idempotente)"
+```kotlin title="movement/messaging/MovimientoPersistenceListener.kt (idempotente)"
 @KafkaListener(topics = ["wallet.movements"], groupId = "movement")
 @Transactional
 fun onMovimiento(evento: MovimientoRegistrado) {
@@ -158,11 +175,13 @@ class KafkaErrorConfig {
 ## Lo que quedó por fuera, en una línea cada uno
 
 - **Concurrencia sobre la misma cuenta.** Dos transferencias en paralelo sobre la misma cuenta pueden pisarse. Se resuelve con bloqueo optimista: una columna `@Version` en `Account` hace que la segunda transacción en confirmar falle y se reintente con el saldo fresco.
-- **Separar los servicios de verdad.** Productor y consumidores viven hoy en la misma app por comodidad. Como `transfer` solo publica un evento y no conoce a nadie, sacar `notification` a su propio despliegue es mover el listener a otro proyecto suscrito al mismo topic. El evento en `movement/api` es el contrato compartido.
+- **Separar los servicios de verdad.** Productor y consumidores viven hoy en la misma app por comodidad. Como `transfer` solo publica un evento y no conoce a nadie, sacar `notification` a su propio despliegue es mover el listener a otro proyecto suscrito al mismo topic. El evento en `movement/domain` es el contrato compartido.
 - **Observabilidad.** Cuando un evento cruza servicios, querrás un `trace-id` que viaje con él, para seguir una transferencia desde el `POST` hasta la notificación aunque hayan pasado por tres procesos.
 
 ## Lo que te llevas
 
 Construiste una wallet que mueve plata de forma transaccional, la expusiste por REST, y desacoplaste el registro y la notificación con eventos sobre Redpanda, con consumidores independientes que reaccionan sin conocerse. Y ahora sabes qué le falta para producción, con código, no con handwaving: outbox para no perder eventos, idempotencia para no duplicarlos, y DLQ para no atascarte con uno malo.
+
+¿Quieres exprimir más el lado Kotlin? En la [Fase 9](fase-09-coroutines.md) —avanzada y opcional— tomamos el consumidor bloqueante de la Fase 7 y lo llevamos a **coroutines**, para cuando un consumidor tiene que llamar a varios servicios externos sin bloquear un hilo por cada espera.
 
 Revisa las [Referencias](referencias.md) para seguir por tu cuenta.

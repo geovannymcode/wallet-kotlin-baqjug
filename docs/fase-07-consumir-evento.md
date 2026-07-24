@@ -5,15 +5,19 @@
 
 ---
 
-## Parte 1 — Configurar el consumidor (5 min)
+## Parte 1 — Configurar el consumidor
 
-Súmale al `application.properties` el lado consumidor. El productor mandaba JSON; el consumidor lo reconstruye.
+Súmale al `application.yaml` el lado consumidor. El productor mandaba JSON; el consumidor lo reconstruye.
 
-```properties title="src/main/resources/application.properties (consumer)"
-spring.kafka.consumer.key-deserializer=org.apache.kafka.common.serialization.StringDeserializer
-spring.kafka.consumer.value-deserializer=org.springframework.kafka.support.serializer.JsonDeserializer
-spring.kafka.consumer.properties.spring.json.trusted.packages=com.baqjug.wallet.*
-spring.kafka.consumer.auto-offset-reset=earliest
+```yaml title="src/main/resources/application.yaml (consumer)"
+spring:
+  kafka:
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "com.baqjug.wallet.*"
 ```
 
 !!! abstract "Concepto al paso: `trusted.packages` y por qué existe"
@@ -22,29 +26,99 @@ spring.kafka.consumer.auto-offset-reset=earliest
 !!! abstract "Concepto al paso: `auto-offset-reset=earliest`"
     Cuando un grupo llega por primera vez a un topic y no tiene una marca previa (offset), ¿desde dónde lee? Con `earliest`, desde el principio del log. Con `latest`, solo lo nuevo. En el taller usamos `earliest` para que un consumidor que enciendes después alcance a ver los eventos que ya publicaste.
 
-## Parte 2 — El consumidor que notifica (10 min)
+## Parte 2 — Levantar Mailpit y configurar el correo
 
-Primera feature nueva: `notification`. Solo escucha y "avisa". Acá el aviso es un log, pero en la vida real sería un correo o un push.
+`notification` va a **mandar un correo de verdad** cuando llegue un movimiento. Pero mandar correos reales en un taller es mala idea (spam, credenciales, rebotes). La solución: **Mailpit**, un servidor de correo falso que atrapa todo lo que la app manda y te lo muestra en el navegador.
 
-```kotlin title="notification/internal/MovimientoNotificationListener.kt"
-package com.baqjug.wallet.notification.internal
+!!! abstract "Concepto al paso: SMTP y Mailpit"
+    **SMTP** es el protocolo con el que las apps entregan correos a un servidor de correo. **Mailpit** es un servidor SMTP **falso**: tu app le entrega los correos como si fuera uno real, pero en vez de mandarlos a internet, Mailpit los **atrapa** y te los muestra en una página web. Ves el correo salir, sin que le llegue a nadie.
 
-import com.baqjug.wallet.movement.api.MovimientoRegistrado
-import org.slf4j.LoggerFactory
+Levántalo con Docker (un solo comando):
+
+```bash
+docker run -d --name mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit
+```
+
+El puerto `1025` es el SMTP (por ahí le entrega tu app); el `8025` es la UI web, en `http://localhost:8025`, donde ves los correos.
+
+Agrega la dependencia de correo de Spring:
+
+```kotlin title="build.gradle.kts (dependencies)"
+implementation("org.springframework.boot:spring-boot-starter-mail")
+```
+
+Y la configuración del correo, con valores por variable de entorno para poder cambiarlos en producción sin tocar el código:
+
+```yaml title="src/main/resources/application.yaml (correo)"
+spring:
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+```
+
+!!! note "Los `:` con valor por defecto"
+    `${SMTP_HOST:localhost}` significa "usa la variable `SMTP_HOST`, y si no existe, `localhost`". Así en tu máquina apunta solo a Mailpit sin configurar nada, y en la nube (Fase 10) le pones las variables de un proveedor real.
+
+## Parte 3 — El consumidor que notifica (por correo)
+
+Primera feature nueva: `notification`. Escucha el evento y le manda un correo al dueño de la cuenta que **recibió** la plata. Para eso necesita su email, y se lo pide a la feature `account` con el `AccountService` que ya tienes.
+
+```kotlin title="notification/domain/EmailNotifier.kt"
+package com.baqjug.wallet.notification.domain
+
+import com.baqjug.wallet.account.domain.AccountService
+import com.baqjug.wallet.movement.domain.MovimientoRegistrado
+import org.springframework.mail.SimpleMailMessage
+import org.springframework.mail.javamail.JavaMailSender
+import org.springframework.stereotype.Component
+
+@Component
+class EmailNotifier(
+    private val accountService: AccountService,
+    private val mailSender: JavaMailSender
+) {
+    fun notificar(evento: MovimientoRegistrado) {
+        val destino = accountService.getById(evento.toId)   // la cuenta destino, con su email
+        val mensaje = SimpleMailMessage().apply {
+            from = "wallet@baqjug.com"
+            setTo(destino.email)
+            subject = "Recibiste un movimiento en tu wallet"
+            text = "Hola ${destino.owner}, recibiste ${evento.amount} en tu cuenta."
+        }
+        mailSender.send(mensaje)
+    }
+}
+```
+
+!!! abstract "Spring al paso: `JavaMailSender`"
+    `JavaMailSender` es la herramienta de Spring para mandar correos. La autoconfigura Boot con las propiedades `spring.mail.*` que pusiste; tú solo la inyectas. `SimpleMailMessage` es un correo de texto plano: remitente, destinatario, asunto y cuerpo. Para HTML o adjuntos usarías `MimeMessage`, pero para un aviso nos sobra con esto.
+
+!!! note "`notification` lee de `account`, y está bien"
+    Para saber a qué correo escribir, `notification` le pide la cuenta a `AccountService`. Eso es una lectura entre features, y no rompe el desacople: lo que nos importaba era que **`transfer` no conociera a sus consumidores**. Que un consumidor consulte datos de otra feature es normal y esperable.
+
+Y el listener, que solo recibe el evento y delega:
+
+```kotlin title="notification/messaging/MovimientoNotificationListener.kt"
+package com.baqjug.wallet.notification.messaging
+
+import com.baqjug.wallet.movement.domain.MovimientoRegistrado
+import com.baqjug.wallet.notification.domain.EmailNotifier
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
 @Component
-class MovimientoNotificationListener {
-
-    private val log = LoggerFactory.getLogger(javaClass)
+class MovimientoNotificationListener(
+    private val emailNotifier: EmailNotifier
+) {
 
     @KafkaListener(topics = ["wallet.movements"], groupId = "notification")
     fun onMovimiento(evento: MovimientoRegistrado) {
-        log.info(
-            "🔔 Notificación: se movieron {} de la cuenta {} a la {}",
-            evento.amount, evento.fromId, evento.toId
-        )
+        emailNotifier.notificar(evento)
     }
 }
 ```
@@ -52,15 +126,15 @@ class MovimientoNotificationListener {
 !!! abstract "Spring al paso: `@KafkaListener`"
     `@KafkaListener` convierte un método en consumidor. `topics` dice qué escuchar, `groupId` a qué grupo pertenece. Spring se suscribe al arrancar, y cada vez que llega un evento, llama tu método con el objeto ya deserializado. Tú solo escribes qué hacer con él.
 
-## Parte 3 — El consumidor que guarda (10 min)
+## Parte 4 — El consumidor que guarda
 
 Acá está lo interesante. En la Fase 4, `movement` guardaba porque `transfer` lo llamaba. Ahora `movement` guarda porque **escucha el evento**, en su propio grupo. Reusa el `MovementService` que ya tenías.
 
-```kotlin title="movement/internal/MovimientoPersistenceListener.kt"
-package com.baqjug.wallet.movement.internal
+```kotlin title="movement/messaging/MovimientoPersistenceListener.kt"
+package com.baqjug.wallet.movement.messaging
 
-import com.baqjug.wallet.movement.api.MovementService
-import com.baqjug.wallet.movement.api.MovimientoRegistrado
+import com.baqjug.wallet.movement.domain.MovementService
+import com.baqjug.wallet.movement.domain.MovimientoRegistrado
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
@@ -79,12 +153,14 @@ class MovimientoPersistenceListener(
 !!! danger "Grupos distintos: los dos reciben cada evento"
     Fíjate: `notification` está en el grupo `notification` y `movement` en el grupo `movement`. Como son grupos distintos, **cada uno recibe una copia** de cada evento. Una sola transferencia dispara un aviso y un registro, en paralelo, sin que se pisen. Si ambos estuvieran en el mismo grupo, el broker le daría el evento a uno solo. Esa diferencia es el corazón del pub/sub.
 
+![Diagrama de flujo del pub/sub: transfer publica el evento MovimientoRegistrado en el topic wallet.movements de Redpanda; el grupo notification lo recibe y envía el correo, y el grupo movement lo recibe y guarda el registro](img/Img_2.png)
+
 !!! note "Un consumidor nuevo no toca a `transfer`"
-    Este es el pago de todo el trabajo. Agregaste dos consumidores y no tocaste una línea de `transfer`. Mañana quieres antifraude: creas otro `@KafkaListener` con su grupo y listo. `transfer` ni se entera. Compara eso con el `if` de la Fase 4, donde cada cosa nueva era editar y redesplegar `transfer`.
+    Este es el pago de todo el trabajo. Agregaste dos consumidores y no tocaste una línea de `transfer`. Mañana quieres antifraude: creas otro `@KafkaListener` con su grupo y listo. `transfer` ni se entera. Compara eso con la rama `Success` de la Fase 4, donde cada cosa nueva era editar y redesplegar `transfer`.
 
-## Parte 4 — Verlo funcionar (10 min)
+## Parte 5 — Verlo funcionar
 
-Arranca la app y haz una transferencia:
+Con Mailpit corriendo, arranca la app y haz una transferencia:
 
 ```bash
 curl -X POST http://localhost:8080/api/transfers \
@@ -96,7 +172,7 @@ curl -X POST http://localhost:8080/api/transfers \
       }'
 ```
 
-En los logs ves el aviso del listener de `notification`. En Supabase, la tabla `movements` tiene una fila nueva, guardada por el listener de `movement`. Un evento, dos consumidores, cero acople con `transfer`.
+Ahora abre **`http://localhost:8025`**: ahí está el correo que mandó `notification`, atrapado por Mailpit, dirigido a `geovanny@example.com` (el dueño de la cuenta destino). Y en Supabase, la tabla `movements` tiene una fila nueva, guardada por el listener de `movement`. Un evento, dos consumidores, cero acople con `transfer`.
 
 !!! warning "Ojo con procesar el mismo evento dos veces"
     Si el broker reentrega un evento (pasa: reinicios, rebalanceos), el listener de `movement` podría guardar el movimiento dos veces. Hoy no lo evitamos. Cómo hacer que consumir el mismo evento varias veces no rompa nada, eso es idempotencia, y lo vemos en la [Fase 8](fase-08-que-sigue.md).

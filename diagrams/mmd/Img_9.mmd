@@ -1,0 +1,4 @@
+flowchart LR
+    R["[ REST ]"] --> T["transfer"]
+    T --> A["account (valida saldo, debita/acredita)"]
+    T -.->|"llamada directa"| M["movement (registra el movimiento)"]

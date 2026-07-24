@@ -5,7 +5,7 @@
 
 ---
 
-## Parte 1 — La dependencia y la conexión (10 min)
+## Parte 1 — La dependencia y la conexión
 
 Agrega Spring for Apache Kafka al `build.gradle.kts`:
 
@@ -23,15 +23,20 @@ implementation("org.springframework.kafka:spring-kafka")
 
 Configura Redpanda Serverless. Los secretos van por variables de entorno, igual que Supabase:
 
-```properties title="src/main/resources/application.properties (Kafka/Redpanda)"
-spring.kafka.bootstrap-servers=${REDPANDA_BOOTSTRAP}
-spring.kafka.properties.security.protocol=SASL_SSL
-spring.kafka.properties.sasl.mechanism=SCRAM-SHA-256
-spring.kafka.properties.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${REDPANDA_USER}" password="${REDPANDA_PASSWORD}";
-
-# Productor: la clave como texto, el valor como JSON.
-spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
-spring.kafka.producer.value-serializer=org.springframework.kafka.support.serializer.JsonSerializer
+```yaml title="src/main/resources/application.yaml (Kafka/Redpanda)"
+spring:
+  kafka:
+    bootstrap-servers: ${REDPANDA_BOOTSTRAP}
+    properties:
+      security.protocol: SASL_SSL
+      sasl.mechanism: SCRAM-SHA-256
+      sasl.jaas.config: >-
+        org.apache.kafka.common.security.scram.ScramLoginModule required
+        username="${REDPANDA_USER}" password="${REDPANDA_PASSWORD}";
+    # Productor: la clave como texto, el valor como JSON.
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 ```
 
 !!! abstract "Concepto al paso: SASL_SSL"
@@ -40,12 +45,12 @@ spring.kafka.producer.value-serializer=org.springframework.kafka.support.seriali
 !!! abstract "Spring al paso: serializar el valor como JSON"
     Para viajar por el broker, el evento se convierte en bytes. Con `JsonSerializer`, Spring convierte tu objeto Kotlin a JSON automáticamente. Del otro lado, el consumidor lo reconstruye. Así publicas objetos de tu dominio sin escribir la conversión a mano.
 
-## Parte 2 — El evento (5 min)
+## Parte 2 — El evento
 
-El evento es un hecho de la feature `movement`, así que su definición vive en la vitrina, `movement/api`. Es un simple `data class`.
+El evento es un hecho de la feature `movement`, así que su definición vive en `movement/domain`. Es un simple `data class`, y es el **contrato compartido** entre quien lo publica (`transfer`) y quienes lo consumen.
 
-```kotlin title="movement/api/MovimientoRegistrado.kt"
-package com.baqjug.wallet.movement.api
+```kotlin title="movement/domain/MovimientoRegistrado.kt"
+package com.baqjug.wallet.movement.domain
 
 import java.math.BigDecimal
 import java.time.Instant
@@ -62,14 +67,14 @@ data class MovimientoRegistrado(
 !!! note "El evento se cuenta en pasado"
     El nombre importa: `MovimientoRegistrado`, no `RegistrarMovimiento`. Es un hecho consumado, no una orden. Quien lo publica está diciendo "esto ya pasó", y no le importa quién lo escuche.
 
-## Parte 3 — El publicador (10 min)
+## Parte 3 — El publicador
 
 `transfer` publica el evento a través de un pequeño componente que envuelve el `KafkaTemplate`.
 
-```kotlin title="transfer/internal/MovimientoPublisher.kt"
-package com.baqjug.wallet.transfer.internal
+```kotlin title="transfer/messaging/MovimientoPublisher.kt"
+package com.baqjug.wallet.transfer.messaging
 
-import com.baqjug.wallet.movement.api.MovimientoRegistrado
+import com.baqjug.wallet.movement.domain.MovimientoRegistrado
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Component
 
@@ -98,44 +103,54 @@ class MovimientoPublisher(
 !!! abstract "Kotlin al paso: `companion object`"
     Un `companion object` guarda cosas que pertenecen a la clase, no a cada instancia, como las `static` de Java. Acá metemos la constante `TOPIC` para no repetir el string mágico y tenerlo en un solo lugar.
 
-## Parte 4 — Cortar la costura (10 min)
+## Parte 4 — Cortar la costura
 
-Ahora el cambio que le da sentido a todo. `transfer` deja de llamar a `movement` y publica el evento:
+Ahora el cambio que le da sentido a todo. ¿Te acuerdas de la rama `Success` de la Fase 4, la que llamaba directo a `movementService.record(...)`? **Esa** era la costura. Acá la cortamos: esa misma rama, en vez de llamar a `movement`, publica el evento y se desentiende.
 
-```kotlin title="transfer/internal/DefaultTransferService.kt" hl_lines="3 14 15 16 17 18 19 20"
+```kotlin title="transfer/domain/TransferService.kt" hl_lines="7 8 14 22 23 24 25 26 27 28 29"
+package com.baqjug.wallet.transfer.domain
+
+import com.baqjug.wallet.account.domain.AccountNotFoundException
+import com.baqjug.wallet.account.domain.AccountService
+import com.baqjug.wallet.account.domain.InsufficientFundsException
+import com.baqjug.wallet.account.domain.MoveResult
+import com.baqjug.wallet.movement.domain.MovimientoRegistrado
+import com.baqjug.wallet.transfer.messaging.MovimientoPublisher
+import org.springframework.stereotype.Service
+
 @Service
-class DefaultTransferService(
+class TransferService(
     private val accountService: AccountService,
     private val publisher: MovimientoPublisher
-) : TransferService {
+) {
 
-    override fun transfer(request: TransferRequest): MoveResult {
+    fun transfer(request: TransferRequest) {
         require(request.fromId != request.toId) {
             "No puedes transferir a la misma cuenta"
         }
-        val result = accountService.moveMoney(request.fromId, request.toId, request.amount)
-
-        if (result is MoveResult.Success) {
-            publisher.publish(
-                MovimientoRegistrado(
-                    fromId = request.fromId,
-                    toId = request.toId,
-                    amount = request.amount
+        when (val result = accountService.moveMoney(request.fromId, request.toId, request.amount)) {
+            is MoveResult.Success ->
+                publisher.publish(
+                    MovimientoRegistrado(
+                        fromId = request.fromId,
+                        toId = request.toId,
+                        amount = request.amount
+                    )
                 )
-            )
+            is MoveResult.InsufficientFunds -> throw InsufficientFundsException()
+            is MoveResult.AccountNotFound -> throw AccountNotFoundException(result.id)
         }
-        return result
     }
 }
 ```
 
 !!! danger "Compara con la Fase 4"
-    Antes: `transfer` importaba `MovementService` y lo llamaba. Ahora: importa solo el evento y lo publica. `transfer` **ya no conoce** a `movement`, ni a `notification`, ni a nadie. Publicó un hecho y se desentendió. Ese import que desapareció es el desacople, hecho código.
+    En la Fase 4, la rama `Success` inyectaba `MovementService` y lo llamaba (`movementService.record(...)`). Ahora esa misma rama inyecta `MovimientoPublisher` y publica el evento. `transfer` **ya no conoce** a `movement`, ni a `notification`, ni a nadie: lo único que importa de `movement` es el `data class` del evento, que es el contrato compartido. Ese cambio de dependencia —de `MovementService` a `MovimientoPublisher`— es el desacople, hecho código.
 
 !!! note "Y el test de la Fase 4 sigue guiándote"
-    Aquel test usaba un doble de `MovementService`. Al cambiar la dependencia por `MovimientoPublisher`, el test te marca dónde ajustar: le pasas un doble del publicador que cuente las publicaciones. La lógica que pruebas es la misma; cambió con quién habla `transfer`.
+    Aquel test mockeaba `MovementService` y verificaba que se llamara `record`. Al cambiar la dependencia por `MovimientoPublisher`, solo ajustas el mock: `mockk<MovimientoPublisher>(relaxed = true)` en vez del de `movement`, y `verify(exactly = 1) { publisher.publish(any()) }`. La lógica que pruebas es la misma; cambió con quién habla `transfer`.
 
-## Parte 5 — Ver el evento salir (5 min)
+## Parte 5 — Ver el evento salir
 
 Arranca la app y haz una transferencia como en la Fase 3. En el panel de Redpanda, en el topic `wallet.movements`, ves aparecer el evento en JSON. Nadie lo consume todavía, pero ya está publicado y guardado en el log del broker, esperando.
 

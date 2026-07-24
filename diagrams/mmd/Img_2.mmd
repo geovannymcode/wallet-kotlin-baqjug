@@ -1,0 +1,4 @@
+flowchart LR
+    T["transfer (producer)"] -->|"publica MovimientoRegistrado"| K{{"Redpanda — topic wallet.movements"}}
+    K -->|"grupo notification"| N["notification (envía correo)"]
+    K -->|"grupo movement"| M["movement (guarda el registro)"]

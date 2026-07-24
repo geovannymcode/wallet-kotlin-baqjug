@@ -1,0 +1,5 @@
+flowchart LR
+    R["[ REST ]"] --> T["transfer"]
+    T --> A["account"]
+    T -->|"publica MovimientoRegistrado"| K{{"[ Redpanda ]"}}
+    K --> N["notification (consume y notifica)"]

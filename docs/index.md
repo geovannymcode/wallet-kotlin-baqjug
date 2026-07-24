@@ -2,11 +2,6 @@
 
 Esta guía construye desde cero una billetera digital en Kotlin y Spring Boot. Empezamos con un endpoint REST que mueve plata entre dos cuentas contra una base Postgres, y terminamos con ese mismo movimiento viajando como un evento que otro servicio consume. Se puede seguir sola, de principio a fin.
 
-El material sirve para dos talleres distintos con **un solo proyecto**:
-
-- En **BAQJUG / IDITEK** cubrimos de la Fase 0 a la Fase 4: la wallet funcionando por REST, con transferencias, validación de saldo y registro de movimientos contra Supabase.
-- En **CaribeConf** arrancamos también desde cero, pero el foco es la última parte: convertir ese registro de movimientos en un evento y consumirlo desde otro servicio con Redpanda.
-
 Si nunca tocaste Kotlin, tranquilo: vamos explicando cada cosa del lenguaje la primera vez que aparece. Si vienes de Kotlin pero nunca hiciste Spring, igual: cada anotación y cada pieza de infraestructura se explica cuando entra en juego. No asumo que porque lees una cosa ya sabes la otra.
 
 !!! note "Esto no es un 'hola mundo'"
@@ -20,55 +15,57 @@ Una wallet, **`wallet`**, con tres cosas que hace cualquier billetera:
 - Transferir plata de una cuenta a otra, validando que haya saldo.
 - Dejar registrado cada movimiento.
 
-Al principio, ese registro es una llamada directa dentro del mismo proceso:
+A vista de pájaro, la wallet es simple: unos clientes entran por HTTP a una aplicación, y esa aplicación lee y escribe en una base Postgres. La arquitectura la ves en detalle en la [Fase 0](fase-00-arranque.md); acá basta la idea. Toda la magia pasa dentro de esa aplicación, y adentro, el registro de cada movimiento arranca de la forma más simple posible: una llamada directa dentro del mismo proceso.
 
-```
-[ REST ] → transfer → account (valida saldo, debita/acredita)
-                    → movement (registra el movimiento)   ← llamada directa
-```
+![Resumen del flujo síncrono: la petición REST entra a transfer, que valida y mueve el saldo en account, y registra el movimiento en movement con una llamada directa dentro del mismo proceso](img/Img_9.png)
 
 En la parte de eventos, el registro deja de ser una llamada directa y pasa a publicarse:
 
-```
-[ REST ] → transfer → account
-                    → publica "MovimientoRegistrado"  →  [ Redpanda ]
-                                                              │
-                                        notification (consume y "notifica")
-```
+![Resumen del flujo por eventos: transfer mueve el saldo en account y publica el evento MovimientoRegistrado en Redpanda, que notification consume y notifica](img/Img_10.png)
 
 El cambio se ve chico en el diagrama, pero es el corazón de la segunda parte: `transfer` deja de saber quién registra o notifica. Solo suelta un evento. Quién lo escuche, y cuántos lo escuchen, ya no es su problema.
 
 ## El problema que motiva la parte de eventos
 
-Imagina que a la wallet le empiezan a pedir cosas cada vez que ocurre una transferencia: registra el movimiento, manda un correo, dispara una notificación push, avisa a antifraude, actualiza un tablero. Si todo eso lo llama `transfer` de forma directa, ese método se vuelve un monstruo que conoce a media empresa. Y si el servicio de correo se cae, la transferencia se cae con él.
+Arranca simple: una transferencia mueve plata y registra el movimiento. Pero el negocio nunca se queda quieto. A los tres meses, cada vez que ocurre una transferencia te piden algo más: manda un correo al que recibió, dispara un push, avísale a antifraude, suma puntos de fidelidad, refresca el tablero de métricas. Seis cosas, y contando.
 
-La mensajería por eventos corta ese nudo. `transfer` publica un hecho, "esto pasó", y sigue con su vida. Los interesados escuchan por su cuenta. Se caen y se levantan sin arrastrar a la transferencia. Eso es lo que vas a construir con tus manos en la Fase 6 y 7.
+Si todas cuelgan de `transfer` con una llamada directa, pasan tres cosas, y las tres son malas:
+
+- `transfer` se vuelve un **monstruo que conoce a media empresa**: importa el servicio de correo, el de push, el de antifraude, y cada feature nueva es editar este método y volver a desplegarlo, aunque la lógica de mover plata no cambió en nada.
+- Se **amarra el destino de todos**: si el servicio de correo está lento, la transferencia se pone lenta; si se cae, la transferencia se cae **con él**. El cliente no puede mover su plata porque un correo no salió. Absurdo, pero es lo que pasa cuando todo va en la misma llamada.
+- El que llega tarde **arriesga lo que ya servía**: meter antifraude te obliga a tocar —y poner en riesgo— el código que ya movía plata bien.
+
+La mensajería por eventos corta ese nudo de raíz. `transfer` hace lo suyo, mover la plata, y publica un hecho: *"se registró un movimiento"*. Ahí termina su responsabilidad. Quién quiera enterarse se suscribe y reacciona por su cuenta —el correo, el push, antifraude—, cada uno en su proceso, cayéndose y levantándose sin arrastrar a nadie. Y lo mejor: agregar un consumidor nuevo **no toca `transfer`**: ni lo editas, ni lo redespliegas, ni lo arriesgas.
+
+Eso es lo que vas a construir con tus manos de la Fase 5 en adelante: pasar de una llamada directa y frágil a un hecho publicado que desacopla toda la cadena.
 
 ## Cómo está organizada
 
 Cada fase es una etapa y, en el repo, una rama. Puedes hacer `git checkout` a cualquiera para seguir desde ahí si te atrasas.
 
-| Fase | Rama | Qué construye | Evento |
-|------|------|----------------|--------|
-| 0 | `fase-0` | El problema, el andamiaje y Supabase | IDITEK |
-| 1 | `fase-1` | El dominio: cuenta, saldo, JPA y Flyway | IDITEK |
-| 2 | `fase-2` | Exponer el saldo por REST | IDITEK |
-| 3 | `fase-3` | Transferencia con validación de saldo | IDITEK |
-| 4 | `fase-4` | Registro de movimientos (llamada directa) | IDITEK |
-| 5 | `fase-5` | Por qué eventos: broker, topic, producer, consumer | CaribeConf |
-| 6 | `fase-6` | Publicar el evento con Redpanda | CaribeConf |
-| 7 | `fase-7` = `main` | Consumir el evento desde otro servicio | CaribeConf |
-| 8 | (referencia) | Qué sigue: outbox, idempotencia, DLQ | CaribeConf |
+| Fase | Rama | Qué construye |
+|------|------|----------------|
+| 0 | `fase-0` | El problema, el andamiaje y Supabase |
+| 1 | `fase-1` | El dominio: cuenta, saldo, JPA y Flyway |
+| 2 | `fase-2` | Exponer el saldo por REST |
+| 3 | `fase-3` | Transferencia con validación de saldo |
+| 4 | `fase-4` | Registro de movimientos (llamada directa) |
+| 5 | `fase-5` | Por qué eventos: broker, topic, producer, consumer |
+| 6 | `fase-6` | Publicar el evento con Redpanda |
+| 7 | `fase-7` = `main` | Consumir el evento desde otro servicio |
+| 8 | (referencia) | De demo a producción: outbox, idempotencia, DLQ |
+| 9 | (opcional) | Coroutines: un consumidor no bloqueante |
+| 10 | (despliegue) | Docker, GitHub Actions y deploy a la nube |
 
-!!! tip "Si solo vienes a CaribeConf"
-    Arrancas desde cero igual. Las Fases 0 a 4 quedan documentadas acá como referencia: puedes leerlas antes o hacer `git checkout fase-4` para ponerte en la línea de salida de la parte de eventos. En el taller en vivo pasamos rápido por esa base y le dedicamos el tiempo a lo nuevo, publicar y consumir eventos.
+!!! tip "Puedes entrar por cualquier fase"
+    Cada rama deja el proyecto justo en el estado de esa fase. Si te perdiste en un paso, `git checkout fase-2` y sigues desde ahí sin quedarte atrás. Y si lo que te interesa es directamente la parte de eventos, `git checkout fase-4` te pone en la línea de salida con toda la base REST ya lista. La rama `main` es la versión final con eventos.
 
-!!! tip "Para seguir a tu ritmo en cualquiera de los dos"
-    Cada rama deja el proyecto justo en el estado de esa fase. Si te perdiste en un paso, `git checkout fase-2` y sigues desde ahí sin quedarte atrás. La rama `main` es la versión final con eventos.
+!!! note "El corazón y las extensiones"
+    Las Fases 0 a 7 son el hilo principal: de un endpoint REST a eventos, con una wallet completa al final. La 8 es referencia (lo que falta para producción: outbox, idempotencia, DLQ), la 9 es un extra avanzado y opcional (coroutines), y la 10 lleva la app a la nube (Docker, integración continua y despliegue). Puedes parar en la 7 y ya tienes algo redondo, o seguir hasta donde quieras.
 
 ## Versiones
 
-Kotlin 2.3 · Spring Boot 4.1 · JDK 25 · Spring Data JPA · Flyway · Spring for Apache Kafka · Supabase (PostgreSQL 17) · Redpanda.
+Kotlin 2.3 · Spring Boot 4.1 · JDK 25 · Spring Data JPA · Flyway · Spring for Apache Kafka · Supabase (PostgreSQL 17) · Redpanda · Docker · GitHub Actions.
 
 !!! note "Confirma versiones en el asistente"
     En [start.spring.io](https://start.spring.io) las versiones cambian con el tiempo. Si no ves Spring Boot 4.1, elige la 4.x estable más cercana. El asistente se encarga de que las dependencias sean compatibles entre sí.

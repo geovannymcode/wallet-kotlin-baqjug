@@ -1,0 +1,12 @@
+sequenceDiagram
+    participant TS as TransferService
+    participant DB as Postgres
+    participant R as OutboxRelay
+    participant K as Redpanda
+    Note over TS,DB: una sola transacción
+    TS->>DB: mover saldo + guardar fila en outbox
+    loop cada 2s
+        R->>DB: lee filas no enviadas (FOR UPDATE SKIP LOCKED)
+        R->>K: publica el evento
+        R->>DB: marca sent_at
+    end

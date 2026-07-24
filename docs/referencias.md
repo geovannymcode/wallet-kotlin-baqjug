@@ -6,6 +6,7 @@ Para seguir por tu cuenta, sin relleno. Estas son las fuentes que valen para lo 
 
 - [Documentación oficial de Kotlin](https://kotlinlang.org/docs/home.html). Empieza por data classes, sealed classes y null safety, que es lo que más usamos.
 - [Kotlin para desarrolladores de Java](https://kotlinlang.org/docs/comparison-to-java.html). Si vienes de Java, esto te ahorra confusiones.
+- [Kotlin Coroutines](https://kotlinlang.org/docs/coroutines-overview.html). Funciones suspendidas, `coroutineScope`, `async`/`await` y concurrencia estructurada, para la Fase 9.
 
 ## Spring Boot y Spring Data
 
@@ -22,6 +23,13 @@ Para seguir por tu cuenta, sin relleno. Estas son las fuentes que valen para lo 
 - [Spring for Apache Kafka](https://docs.spring.io/spring-kafka/reference/index.html). Productores, consumidores, serialización JSON, reintentos y DLQ.
 - [Documentación de Redpanda](https://docs.redpanda.com). El setup de Serverless y el uso de `rpk`.
 - Para el patrón outbox y la idempotencia, busca "Transactional Outbox Pattern" de Chris Richardson (microservices.io). Es la explicación de referencia.
+
+## Despliegue y correo
+
+- [Documentación de GitHub Actions](https://docs.github.com/actions). Workflows, runners, secretos y el marketplace de acciones.
+- [Documentación de Render](https://render.com/docs) y [de Railway](https://docs.railway.com). Desplegar desde un `Dockerfile`, variables de entorno y deploy hooks.
+- [Mailpit](https://mailpit.axllent.org/docs/). El servidor SMTP falso con UI web para atrapar correos en local.
+- [Spring Boot: sending email](https://docs.spring.io/spring-boot/reference/io/email.html). `JavaMailSender` y la autoconfiguración de `spring.mail.*`.
 
 ## Supabase
 

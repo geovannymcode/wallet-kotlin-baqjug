@@ -2,7 +2,7 @@ Inicio
 
 MR - Planteamiento del problema (lenguaje natural)
 MR - Requerimiento (HU - Funcional / No Funcional + restricciones)
-MR - Diagrama de Arquitectura
+MR - Diagrama de Arquitectura (Img_0.png)
 
 --> Inicio Taller
 MR - Stack tecnológico (Java - patrones - compilados/empaquetados gradle - ORM/JPA - Logs - HTTP Estándar)
