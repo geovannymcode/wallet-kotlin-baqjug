@@ -4,27 +4,27 @@
 **Lo que vas a lograr**: 
 - Entender el problema y sus requisitos, ver la arquitectura de un vistazo, elegir el stack justificándolo, generar el proyecto y organizarlo por features, y conectarlo a Supabase.
 
-## Parte 1 — Planteamiento del problema - [MR]
+## Parte 1 — Planteamiento del problema - [MR - 2 min]
 
 Una billetera digital tiene que hacer algo que suena trivial y no lo es: 
-- Mover dinero una cuenta a otra sin que se pierda ni se duplique un peso. Si algo falla a la mitad, no puede quedar la cuenta de origen debitada y la de destino sin acreditar. 
+- Mover dinero una cuenta a otra sin que se pierda ni se duplique un peso. 
+- Si algo falla a la mitad, no puede quedar la cuenta de origen debitada y la de destino sin acreditar. 
 - Cada movimiento tiene que quedar registrado, y cuando ocurre, alguien va a querer enterarse (una alerta).
 
 Lo vamos a construir primero como un endpoint REST directo y, cuando ya funcione, le adicionamos eventos para desacoplar el registro y la notificación.
 
-## Parte 2 — Requerimiento | HU - [MR]
+## Parte 2 — Requerimiento | HU - [MR- 3 min]
 **HU**: Como usuario de la wallet, quiero consultar mi saldo y transferir plata a otra cuenta, con la certeza de que ni un centavo se pierde y de que cada movimiento queda registrado.
 
 > 2.1 **Funcional — qué debe hacer:**
-> Son las acciones que el sistema ofrece ("transferir plata").
+> Son las acciones que el sistema ofrece.
 
 - Consultar el saldo de una cuenta.
-- Transferir plata de una cuenta a otra, rechazando la operación si no hay saldo suficiente.
+- Transferir dinero de una cuenta a otra, rechazando la operación si no hay saldo suficiente.
 - Registrar cada movimiento: origen, destino, monto, fecha y hora.
-- Avisar cuando ocurre un movimiento (notificación). Esto llega en la parte de eventos.
+- Avisar cuando ocurre un movimiento (notificación).
 
-> 2.2 **No funcional — cómo debe comportarse:**
-> Son cualidades de cómo las hace ("nunca dejar un saldo roto", "responder rápido").
+> 2.2 **No funcional — cómo debe comportarse el sistema**
 
 - **Consistencia**: una transferencia es todo-o-nada. Jamás puede quedar la cuenta de origen debitada y la de destino sin acreditar.
 - **Exactitud del dinero**: ni un centavo perdido por redondeo.
@@ -39,13 +39,13 @@ Lo vamos a construir primero como un endpoint REST directo y, cuando ya funcione
 - No se puede perder un movimiento ni procesarlo mal porque un proceso falló.
 - El esquema de la base viaja versionado en el repositorio, reproducible en cualquier máquina.
 
-## Parte 3 — Arquitectura y Diseño - [MR]
+## Parte 3 — Arquitectura y Diseño - [MR - 2 min]
 Diagrama de la solución.
 
 ![Arquitectura general: los clientes (consumers) hacen peticiones REST a la aplicación wallet, que a través de ORM/JPA lee y escribe las tablas de cuentas y transferencias en la base de datos Postgres](img/Img_0.png)
 Esa forma nos alcanza para las primeras fases. Más adelante, cuando entren los eventos, a la derecha aparecerá un broker por donde salen los hechos que otros servicios consumen; pero el corazón sigue siendo el mismo: clientes → aplicación → base.
 
-## Parte 4 — Stack Tecnológico - [MR]
+## Parte 4 — Stack Tecnológico - [MR- 2 min]
 Recién ahora elegimos herramientas, y cada una responde a un requisito de arriba, no a la moda:
 
 | Nombre     | Descripción                              |
@@ -101,7 +101,7 @@ Cada feature se separa en dos sub-carpetas:
     - Porque el "cómo entra" (HTTP hoy, una cola de mensajes mañana, la línea de comandos pasado) no debería ensuciar el "qué hace". 
     - Si la lógica vive en `domain` sin depender de la web, el día que además la quieras disparar por un evento —cosa que haremos en la Fase 7— no reescribes nada: la vuelves a llamar desde otra puerta. El `domain` es reusable; la puerta es intercambiable.
 
-## Parte 6 — Conectar a BD Postgres (Supabase) - [MR]
+## Parte 6 — Conectar a BD Postgres (Supabase) - [MR- 5 min]
 
 - Abre tu proyecto de Supabase, ve a **Project Settings → Database** y copia los datos de conexión. 
 - Vamos a pasárselos a Spring por variables de entorno, no quemados en el código.
