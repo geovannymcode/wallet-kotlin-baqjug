@@ -12,3 +12,5 @@ myenv
 venv
 .venv/
 **/.DS_Store
+docs/fase-00-arranque-resume.md
+
