@@ -120,7 +120,7 @@ mkdocs serve   # abre http://127.0.0.1:8000
 
 ## 📄 Licencia y uso
 
-Material educativo de Geovanny Mendoza. Úsalo, apréndelo y compártelo; si lo reusas en un taller o una charla, dale crédito. 🙌
+Material educativo de Geovanny Mendoza y Maicol Ruidiaz. Úsalo, apréndelo y compártelo; si lo reusas en un taller o una charla, dale crédito. 🙌
 
 ---
 
