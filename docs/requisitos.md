@@ -14,7 +14,7 @@ La idea de este taller es que nadie pierda 20 minutos peleando con infraestructu
 
 La base y el broker viven en la nube, así que no montas nada local para eso. Docker no lo necesitas al arrancar: entra en juego recién en la Fase 7 (correo con Mailpit) y en la Fase 10 (despliegue). Si ya programas en Java o Kotlin, seguro tienes casi todo esto.
 
-## En la nube (se configura en vivo, gratis)
+## En la nube (se configura en vivo)
 
 ### Supabase (la base de datos)
 
