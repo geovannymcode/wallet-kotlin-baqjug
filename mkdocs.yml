@@ -52,6 +52,9 @@ nav:
       - "Fase 10 · Despliegue con GitHub Actions": fase-10-despliegue.md
   - Referencias: referencias.md
 
+exclude_docs: |
+  fase-00-arranque-resume.md
+
 markdown_extensions:
   - admonition
   - pymdownx.details
