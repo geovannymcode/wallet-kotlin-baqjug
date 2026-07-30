@@ -1,0 +1,1161 @@
+
+<!doctype html>
+<html lang="es" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Guía paso a paso para construir una billetera digital con Kotlin, Spring Boot 4, Supabase y eventos con Redpanda.">
+      
+      
+        <meta name="author" content="Geovanny Mendoza">
+      
+      
+        <link rel="canonical" href="https://geovannymcode.github.io/wallet-kotlin-baqjug/fase-00-arranque/">
+      
+      
+        <link rel="prev" href="../requisitos/">
+      
+      
+        <link rel="next" href="../fase-01-dominio/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Fase 0 · El problema y el andamiaje - Una wallet en Kotlin: de un endpoint REST a eventos</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="deep-orange" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#fase-0-el-problema-y-el-andamiaje" class="md-skip">
+          Saltar a contenido
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabecera">
+    <a href=".." title="Una wallet en Kotlin: de un endpoint REST a eventos" class="md-header__button md-logo" aria-label="Una wallet en Kotlin: de un endpoint REST a eventos" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Una wallet en Kotlin: de un endpoint REST a eventos
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Fase 0 · El problema y el andamiaje
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="deep-orange" data-md-color-accent="teal"  aria-label="Cambiar a modo claro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Cambiar a modo claro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-orange" data-md-color-accent="teal"  aria-label="Cambiar a modo oscuro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Cambiar a modo oscuro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Búsqueda" placeholder="Búsqueda" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Buscar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpiar" aria-label="Limpiar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando búsqueda
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/geovannymcode/wallet-kotlin-baqjug" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    geovannymcode/wallet-kotlin-baqjug
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Pestañas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Inicio
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../requisitos/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Requisitos y setup
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  Fases
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../referencias/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Referencias
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navegación" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Una wallet en Kotlin: de un endpoint REST a eventos" class="md-nav__button md-logo" aria-label="Una wallet en Kotlin: de un endpoint REST a eventos" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Una wallet en Kotlin: de un endpoint REST a eventos
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/geovannymcode/wallet-kotlin-baqjug" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    geovannymcode/wallet-kotlin-baqjug
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../requisitos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Requisitos y setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fases
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Fases
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fase 0 · El problema y el andamiaje
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fase 0 · El problema y el andamiaje
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#parte-1-el-problema-en-lenguaje-natural" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parte 1 — El problema, en lenguaje natural
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parte-2-el-requerimiento-como-historia-de-usuario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parte 2 — El requerimiento, como historia de usuario
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parte-3-la-arquitectura-a-vista-de-pajaro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parte 3 — La arquitectura, a vista de pájaro
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parte-4-el-stack-elegido-desde-los-requisitos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parte 4 — El stack, elegido desde los requisitos
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parte-5-como-organizamos-el-codigo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parte 5 — Cómo organizamos el código
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Parte 5 — Cómo organizamos el código">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#la-forma-comun-y-por-que-no-la-usamos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La forma común (y por qué no la usamos)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lo-que-si-hacemos-agrupar-por-feature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lo que sí hacemos: agrupar por feature
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dentro-de-cada-feature-domain-y-web" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dentro de cada feature: domain y web
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dos-cosas-que-no-vamos-a-hacer-y-por-que" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dos cosas que NO vamos a hacer (y por qué)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#la-estructura-en-un-diagrama" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La estructura, en un diagrama
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parte-6-conectar-supabase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parte 6 — Conectar Supabase
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cierre-de-la-fase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cierre de la fase
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fase-01-dominio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fase 1 · El dominio de la wallet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fase-02-rest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fase 2 · Exponer el saldo por REST
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fase-03-transferencia/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fase 3 · Transferencias con validación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fase-04-movimientos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fase 4 · Registro de movimientos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../referencias/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="fase-0-el-problema-y-el-andamiaje">Fase 0 · El problema y el andamiaje<a class="headerlink" href="#fase-0-el-problema-y-el-andamiaje" title="Permanent link">&para;</a></h1>
+<p><strong>Rama</strong>: <code>fase-0</code>
+<strong>Lo que vas a lograr</strong>: entender el problema y sus requisitos, ver la arquitectura de un vistazo, elegir el stack justificándolo, generar el proyecto y organizarlo por features, y conectarlo a Supabase.</p>
+<hr />
+<h2 id="parte-1-el-problema-en-lenguaje-natural">Parte 1 — El problema, en lenguaje natural<a class="headerlink" href="#parte-1-el-problema-en-lenguaje-natural" title="Permanent link">&para;</a></h2>
+<p>Antes de escribir una línea, tengamos claro qué estamos resolviendo. Nada de tecnología todavía; solo el negocio.</p>
+<p>Una billetera digital tiene que hacer algo que suena trivial y no lo es: mover plata de una cuenta a otra sin que se pierda ni se duplique un peso. Si algo falla a la mitad, no puede quedar la cuenta de origen debitada y la de destino sin acreditar. Cada movimiento tiene que quedar registrado, y cuando ocurre, alguien va a querer enterarse (un correo, una alerta).</p>
+<p>Eso es todo el problema. Lo vamos a construir primero como un endpoint REST directo y, cuando ya funcione, le meteremos eventos para desacoplar el registro y la notificación.</p>
+<h2 id="parte-2-el-requerimiento-como-historia-de-usuario">Parte 2 — El requerimiento, como historia de usuario<a class="headerlink" href="#parte-2-el-requerimiento-como-historia-de-usuario" title="Permanent link">&para;</a></h2>
+<p>El problema en prosa está bien para conversar, pero para construir conviene ordenarlo. Lo escribimos como en la industria: qué debe <strong>hacer</strong> el sistema (funcional), cómo debe <strong>comportarse</strong> (no funcional) y qué <strong>límites</strong> no puede cruzar (restricciones).</p>
+<div class="admonition abstract">
+<p class="admonition-title">Concepto al paso: funcional, no funcional y restricciones</p>
+<p>Los requisitos <strong>funcionales</strong> son las acciones que el sistema ofrece ("transferir plata"). Los <strong>no funcionales</strong> son cualidades de cómo las hace ("nunca dejar un saldo roto", "responder rápido"). Las <strong>restricciones</strong> son reglas duras que acotan la solución ("el dinero se representa exacto"). Separarlos evita que se te escape lo importante: casi siempre, lo que hunde un sistema de plata no es una función que falta, sino un no funcional que nadie respetó.</p>
+</div>
+<blockquote>
+<p><strong>Historia de usuario.</strong> Como usuario de la wallet, quiero consultar mi saldo y transferir plata a otra cuenta, con la certeza de que ni un centavo se pierde y de que cada movimiento queda registrado.</p>
+</blockquote>
+<p><strong>Funcional — qué debe hacer</strong></p>
+<ul>
+<li>Consultar el saldo de una cuenta.</li>
+<li>Transferir plata de una cuenta a otra, rechazando la operación si no hay saldo suficiente.</li>
+<li>Registrar cada movimiento: de quién, a quién, cuánto y cuándo.</li>
+<li>Avisar cuando ocurre un movimiento (correo u otra reacción). Esto llega en la parte de eventos.</li>
+</ul>
+<p><strong>No funcional — cómo debe comportarse</strong></p>
+<ul>
+<li><strong>Consistencia</strong>: una transferencia es todo-o-nada. Jamás puede quedar la cuenta de origen debitada y la de destino sin acreditar.</li>
+<li><strong>Exactitud del dinero</strong>: ni un centavo perdido por redondeo.</li>
+<li><strong>Evolución sin riesgo</strong>: poder agregar reacciones nuevas (correo, antifraude, métricas) sin tocar el corazón de la transferencia.</li>
+<li><strong>Trazabilidad</strong>: cada cuenta y cada movimiento llevan registro de cuándo ocurrieron.</li>
+</ul>
+<p><strong>Restricciones — los límites duros</strong></p>
+<ul>
+<li>El dinero se representa con precisión exacta; nada de números flotantes.</li>
+<li>No se puede perder un movimiento ni procesarlo mal porque un proceso se cayó.</li>
+<li>El esquema de la base viaja versionado en el repositorio, reproducible en cualquier máquina.</li>
+</ul>
+<h2 id="parte-3-la-arquitectura-a-vista-de-pajaro">Parte 3 — La arquitectura, a vista de pájaro<a class="headerlink" href="#parte-3-la-arquitectura-a-vista-de-pajaro" title="Permanent link">&para;</a></h2>
+<p>Con el problema y los requisitos claros, miremos la forma de la solución antes de elegir herramientas.</p>
+<p><img alt="Arquitectura general: los clientes (consumers) hacen peticiones REST a la aplicación wallet, que a través de ORM/JPA lee y escribe las tablas de cuentas y transferencias en la base de datos Postgres" src="../img/Img_0.png" /></p>
+<p>Es simple a propósito: unos clientes entran por HTTP a <strong>una aplicación</strong> (la wallet), y esa aplicación lee y escribe en <strong>una base de datos</strong> relacional a través de un mapeo objeto-relacional (ORM/JPA). Toda la lógica —validar el saldo, mover la plata, registrar el movimiento— vive en esa caja del medio.</p>
+<p>Esa forma nos alcanza para las primeras fases. Más adelante, cuando entren los eventos, a la derecha aparecerá un broker por donde salen los hechos que otros servicios consumen; pero el corazón sigue siendo el mismo: clientes → aplicación → base.</p>
+<h2 id="parte-4-el-stack-elegido-desde-los-requisitos">Parte 4 — El stack, elegido desde los requisitos<a class="headerlink" href="#parte-4-el-stack-elegido-desde-los-requisitos" title="Permanent link">&para;</a></h2>
+<p>Recién ahora elegimos herramientas, y cada una responde a un requisito de arriba, no a la moda:</p>
+<ul>
+<li><strong>Exactitud del dinero</strong> → una base <strong>relacional</strong> que guarda decimales exactos (<code>NUMERIC</code>) y, en el código, <code>BigDecimal</code>. Nada de flotantes.</li>
+<li><strong>Consistencia todo-o-nada</strong> → una base con <strong>transacciones ACID</strong>. Postgres las tiene, y Spring nos deja envolver una operación en una transacción con una anotación.</li>
+<li><strong>Base gestionada, sin dolor de instalación</strong> → <strong>Supabase</strong>, un Postgres en la nube detrás de un login.</li>
+<li><strong>Esquema versionado y reproducible</strong> → <strong>Flyway</strong>, que aplica migraciones SQL numeradas y anota cuáles ya corrió.</li>
+<li><strong>Menos plomería, servidor listo</strong> → <strong>Spring Boot</strong>, que trae servidor web, acceso a datos e inyección de dependencias sin que configures medio mundo.</li>
+<li><strong>Lenguaje expresivo y seguro</strong> → <strong>Kotlin</strong>: <code>data class</code> para objetos de datos en una línea, null-safety para que los nulos no exploten en runtime, y <code>sealed class</code> para modelar con exactitud los finales de una operación (lo verás en la transferencia).</li>
+<li><strong>Evolución sin riesgo</strong> → <strong>mensajería por eventos</strong> con <strong>Kafka/Redpanda</strong>, que entra en la segunda parte para desacoplar las reacciones.</li>
+</ul>
+<div class="admonition abstract">
+<p class="admonition-title">Concepto al paso: qué es Spring Boot</p>
+<p>Spring Boot es un framework para armar aplicaciones backend en la JVM sin configurar medio mundo a mano. Te da un servidor web embebido, conexión a base de datos, inyección de dependencias y un montón de piezas listas para usar. Tú te concentras en tu lógica; Boot cablea lo aburrido.</p>
+</div>
+<p>Con las decisiones tomadas, generamos el esqueleto. <strong>Spring Initializr</strong> es un asistente web que lo arma por ti. Entra a <a href="https://start.spring.io">https://start.spring.io</a> y llena:</p>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Valor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Project</td>
+<td><strong>Gradle - Kotlin</strong></td>
+</tr>
+<tr>
+<td>Language</td>
+<td><strong>Kotlin</strong></td>
+</tr>
+<tr>
+<td>Spring Boot</td>
+<td><strong>4.1.x</strong> (o la 4.x estable más cercana)</td>
+</tr>
+<tr>
+<td>Group</td>
+<td><code>com.baqjug</code></td>
+</tr>
+<tr>
+<td>Artifact</td>
+<td><code>wallet</code></td>
+</tr>
+<tr>
+<td>Package name</td>
+<td><code>com.baqjug.wallet</code></td>
+</tr>
+<tr>
+<td>Packaging</td>
+<td><strong>Jar</strong></td>
+</tr>
+<tr>
+<td>Java</td>
+<td><strong>25</strong></td>
+</tr>
+</tbody>
+</table>
+<p>En <strong>Dependencies</strong>, agrega estas por ahora (la de Kafka la sumamos en la Fase 6):</p>
+<table>
+<thead>
+<tr>
+<th>Dependencia</th>
+<th>Para qué</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Spring Web</strong></td>
+<td>La API REST</td>
+</tr>
+<tr>
+<td><strong>Spring Data JPA</strong></td>
+<td>Guardar cuentas y movimientos</td>
+</tr>
+<tr>
+<td><strong>PostgreSQL Driver</strong></td>
+<td>El driver de Supabase</td>
+</tr>
+<tr>
+<td><strong>Validation</strong></td>
+<td>Validar los datos que entran</td>
+</tr>
+<tr>
+<td><strong>Flyway Migration</strong></td>
+<td>Versionar el esquema de la base</td>
+</tr>
+</tbody>
+</table>
+<p>Haz clic en <strong>GENERATE</strong>, descomprime dentro de tu repo y ábrelo en IntelliJ (<strong>File → Open</strong>). La primera vez baja el wrapper de Gradle y las dependencias. Espera a que termine.</p>
+<div class="admonition note">
+<p class="admonition-title">El plugin <code>kotlin-jpa</code> ya viene</p>
+<p>Si generaste con JPA, el <code>build.gradle.kts</code> trae el plugin <code>kotlin("plugin.jpa")</code>. Ese plugin le genera por detrás a tus entidades el constructor sin argumentos que JPA exige, sin que tú tengas que escribirlo. Sin él, las entidades de Kotlin no arrancan.</p>
+</div>
+<h2 id="parte-5-como-organizamos-el-codigo">Parte 5 — Cómo organizamos el código<a class="headerlink" href="#parte-5-como-organizamos-el-codigo" title="Permanent link">&para;</a></h2>
+<p>Acá tomamos la decisión de organización más importante del taller, y la vamos a explicar con calma porque de esto depende cómo se ve todo lo que sigue. Si nunca has pensado en "arquitectura de software", tranquilo: por ahora es solo <strong>dónde poner cada archivo y por qué</strong>.</p>
+<h3 id="la-forma-comun-y-por-que-no-la-usamos">La forma común (y por qué no la usamos)<a class="headerlink" href="#la-forma-comun-y-por-que-no-la-usamos" title="Permanent link">&para;</a></h3>
+<p>Cuando arrancas, lo típico es agrupar el código por <strong>capa técnica</strong>: una carpeta <code>controllers</code> con todos los controladores, otra <code>services</code> con todos los servicios, otra <code>repositories</code> con todos los repositorios. Funciona para algo chiquito. Pero a medida que crece, para tocar "lo de transferencias" terminas saltando entre tres o cuatro carpetas lejanas, porque todo lo de una misma cosa quedó regado.</p>
+<h3 id="lo-que-si-hacemos-agrupar-por-feature">Lo que sí hacemos: agrupar por feature<a class="headerlink" href="#lo-que-si-hacemos-agrupar-por-feature" title="Permanent link">&para;</a></h3>
+<p>Nosotros agrupamos <strong>por feature</strong>: todo lo de cuentas junto, todo lo de transferencias junto, todo lo de movimientos junto. Abres la carpeta <code>account</code> y ahí está TODO lo de cuentas: la entidad, el repositorio, el servicio, el controlador. No tienes que buscar en cinco lados.</p>
+<div class="admonition abstract">
+<p class="admonition-title">Concepto al paso: ¿qué es una 'feature'?</p>
+<p>Una feature es una capacidad del sistema con sentido de negocio: "cuentas", "transferencias", "movimientos". No es una capa técnica ("controladores"), es algo que el negocio reconocería. La regla que seguimos viene de un enfoque llamado <strong>Tomato Architecture</strong>, que en un monolito dice: <strong>primero divide por feature</strong>, y solo adentro de cada feature separa por capas.</p>
+</div>
+<p>Esto no es un capricho de estilo. Es el principio #1 de Tomato Architecture, un enfoque pragmático cuyo lema es "no te compliques": nada de puertos, adaptadores ni abstracciones "por si algún día cambiamos de base de datos". Código simple y aburrido, que es el que sobrevive años y el que un compañero nuevo entiende sin sufrir.</p>
+<h3 id="dentro-de-cada-feature-domain-y-web">Dentro de cada feature: <code>domain</code> y <code>web</code><a class="headerlink" href="#dentro-de-cada-feature-domain-y-web" title="Permanent link">&para;</a></h3>
+<p>Cada feature se parte en dos sub-carpetas:</p>
+<ul>
+<li><strong><code>domain</code></strong> es el corazón. Acá vive la lógica: la entidad que se guarda en la base, el repositorio, el servicio con las reglas de negocio, el mapper y los objetos de datos. El <code>domain</code> <strong>no sabe nada de HTTP</strong> ni de quién lo llama. Podrías invocarlo desde un <code>main()</code>, desde una tarea programada o desde un test, y le daría exactamente igual.</li>
+<li><strong><code>web</code></strong> es la puerta de entrada por HTTP: el controlador. Su único trabajo es recibir la petición web, sacar los datos y pasárselos al <code>domain</code>. Cero lógica de negocio acá.</li>
+</ul>
+<div class="admonition abstract">
+<p class="admonition-title">Concepto al paso: ¿por qué separar <code>domain</code> de <code>web</code>?</p>
+<p>Porque el "cómo entra" (HTTP hoy, una cola de mensajes mañana, la línea de comandos pasado) no debería ensuciar el "qué hace". Si la lógica vive en <code>domain</code> sin depender de la web, el día que además la quieras disparar por un evento —cosa que haremos en la Fase 7— no reescribes nada: la vuelves a llamar desde otra puerta. El <code>domain</code> es reusable; la puerta es intercambiable.</p>
+</div>
+<h3 id="dos-cosas-que-no-vamos-a-hacer-y-por-que">Dos cosas que NO vamos a hacer (y por qué)<a class="headerlink" href="#dos-cosas-que-no-vamos-a-hacer-y-por-que" title="Permanent link">&para;</a></h3>
+<p>Estas dos decisiones van a contramano de mucho tutorial que verás por ahí, así que las explico bien:</p>
+<p><strong>1. No creamos interfaces "por si acaso".</strong> En muchos proyectos, por cada <code>AccountService</code> hay una interfaz <code>AccountService</code> y una clase <code>AccountServiceImpl</code> que la implementa, aunque solo exista UNA implementación. Eso es peso muerto: dos archivos para una sola cosa. Nuestro <code>AccountService</code> va a ser una <strong>clase concreta y ya</strong>. ¿Que mañana necesitas una segunda implementación? El IDE te extrae la interfaz en dos teclas. ¿Que la necesitas para un test? Las librerías de mocking mockean clases sin problema. Crear la interfaz desde el día uno es resolver un problema que casi nunca llega.</p>
+<div class="admonition note">
+<p class="admonition-title">La única excepción: los repositorios</p>
+<p>Vas a ver que <code>AccountRepository</code> sí es una interfaz. Pero no es idea nuestra: Spring Data <strong>exige</strong> una interfaz para generarte la implementación por detrás (lo vemos en la Fase 1). Es una interfaz que el framework nos obliga a tener, no una que inventamos "por si acaso". Esa es toda la diferencia.</p>
+</div>
+<p><strong>2. Separamos la entidad de la base de lo que sale por la API.</strong> La clase que se guarda en Postgres (la llamaremos <code>AccountEntity</code>) NO es la misma que devolvemos en el JSON (<code>AccountResponse</code>). Un pequeño <strong>mapper</strong> traduce de una a la otra. Suena a trabajo extra, pero te salva de que un cambio en la tabla te cambie sin querer el contrato de tu API. Lo ves en acción en la Fase 2.</p>
+<h3 id="la-estructura-en-un-diagrama">La estructura, en un diagrama<a class="headerlink" href="#la-estructura-en-un-diagrama" title="Permanent link">&para;</a></h3>
+<p>Crea esta estructura dentro de <code>com.baqjug.wallet</code> (clic derecho → <strong>New → Package</strong>). No la llenamos toda ahora; cada fase puebla lo que le toca:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>com.baqjug.wallet
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── account
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│   ├── domain      ← entidad, repositorio, servicio, mapper, DTOs, excepciones
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│   └── web         ← el controlador REST
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>├── transfer
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│   ├── domain
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   └── web
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>├── movement
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   ├── domain      ← entidad, repositorio, servicio
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│   └── messaging   ← aparece con los eventos (Fases 6-7): consume del broker
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>├── notification    ← aparece en la Fase 7 (consumidor por eventos)
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   └── messaging
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>└── web
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    └── exception   ← manejo de errores compartido (GlobalExceptionHandler)
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">¿De dónde sale todo esto?</p>
+<p>Este patrón lo popularizó Siva Prasad Reddy con el nombre de <strong>Tomato Architecture</strong>. El nombre no significa nada (igual que "hexagonal" tampoco); es un guiño para no tomarse la arquitectura tan en serio. Si quieres el detalle, está en <a href="https://www.sivalabs.in/blog/tomato-architecture-pragmatic-approach-to-software-design/">su blog</a>. Lo que nos importa acá: package-by-feature, servicios concretos, y abrazar el framework en vez de envolverlo en abstracciones.</p>
+</div>
+<h2 id="parte-6-conectar-supabase">Parte 6 — Conectar Supabase<a class="headerlink" href="#parte-6-conectar-supabase" title="Permanent link">&para;</a></h2>
+<p>Abre tu proyecto de Supabase, ve a <strong>Project Settings → Database</strong> y copia los datos de conexión. Vamos a pasárselos a Spring por variables de entorno, no quemados en el código.</p>
+<p>Crea o edita <code>src/main/resources/application.yaml</code>:</p>
+<div class="language-yaml highlight"><span class="filename">src/main/resources/application.yaml</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">spring</span><span class="p">:</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">application</span><span class="p">:</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wallet</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="c1"># Supabase (Postgres). Los valores reales van por variables de entorno.</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">datasource</span><span class="p">:</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${SUPABASE_DB_URL}</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${SUPABASE_DB_USER}</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${SUPABASE_DB_PASSWORD}</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="c1"># JPA no crea tablas: de eso se encarga Flyway.</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="nt">jpa</span><span class="p">:</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="nt">hibernate</span><span class="p">:</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">      </span><span class="nt">ddl-auto</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">validate</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">    </span><span class="nt">open-in-view</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">  </span><span class="c1"># Flyway busca las migraciones en db/migration.</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">  </span><span class="nt">flyway</span><span class="p">:</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span></code></pre></div>
+<div class="admonition abstract">
+<p class="admonition-title">Concepto al paso: variables de entorno</p>
+<p>En vez de escribir la contraseña de la base dentro del código (donde terminaría en Git, a la vista de todos), la leemos de una variable de entorno con <code>${NOMBRE}</code>. En IntelliJ las configuras en <strong>Run → Edit Configurations → Environment variables</strong>. En producción las inyecta la plataforma. El código nunca sabe el secreto.</p>
+</div>
+<p>La URL de Supabase tiene esta forma (usa el host y puerto que te muestra tu panel):</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>jdbc:postgresql://TU-HOST.supabase.com:5432/postgres
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Por qué <code>ddl-auto=validate</code></p>
+<p>Le decimos a JPA que <strong>no</strong> cree ni modifique tablas. Solo que valide que lo que hay en la base concuerda con tus entidades. Quien manda sobre el esquema es Flyway, con migraciones versionadas. Dejar que Hibernate cree tablas solo está bien para un juguete; en algo que maneja plata, no.</p>
+</div>
+<h2 id="cierre-de-la-fase">Cierre de la fase<a class="headerlink" href="#cierre-de-la-fase" title="Permanent link">&para;</a></h2>
+<p>Todavía no hay tablas ni entidades, así que la app aún no levanta contra la base. Eso es normal. Dejamos el andamiaje listo:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>./gradlew<span class="w"> </span>compileKotlin
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>git<span class="w"> </span>add<span class="w"> </span>.
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;fase-0: proyecto wallet, estructura por features y conexión a Supabase&quot;</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>git<span class="w"> </span>branch<span class="w"> </span>fase-0
+</span></code></pre></div>
+<p>En la <a href="../fase-01-dominio/">Fase 1</a> modelamos la cuenta con su saldo, la primera migración de Flyway, y la app arranca por fin contra Supabase.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Volver al principio
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Geovanny Mendoza
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/geovannymcode" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://www.linkedin.com/in/geovannycode/" target="_blank" rel="noopener" title="www.linkedin.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3M135.4 416H69V202.2h66.5V416zM102.2 96a38.5 38.5 0 1 1 0 77 38.5 38.5 0 1 1 0-77m282.1 320h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "toc.integrate", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado al portapapeles", "clipboard.copy": "Copiar al portapapeles", "search.result.more.one": "1 m\u00e1s en esta p\u00e1gina", "search.result.more.other": "# m\u00e1s en esta p\u00e1gina", "search.result.none": "No se encontraron documentos", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Teclee para comenzar b\u00fasqueda", "search.result.term.missing": "Falta", "select.version": "Seleccionar versi\u00f3n"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
