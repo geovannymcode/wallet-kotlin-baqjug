@@ -147,69 +147,44 @@ class MovimientoNotificationListener(
 !!! abstract "Spring al paso: `@KafkaListener suspend fun`"
     El método del listener es `suspend`, y con eso puede llamar a `notificationService.notificar(...)`, que también es `suspend`. Spring for Apache Kafka (desde la versión 3.2) detecta que el listener es suspendido y lo corre en una coroutine, sin que tú montes nada más. Así la cadena entera —listener → servicio → clientes HTTP— es no bloqueante de punta a punta.
 
-## El puente con Reactor, con precisión
+## Muchas llamadas: `parMap` (Arrow)
 
-En este consumer usamos `awaitBodilessEntity()` sobre el `WebClient` para suspender sin bloquear. Vale afinar de dónde sale cada pieza, porque el día que suspendas sobre un `Mono` que **no** venga de WebClient te va a importar.
+`coroutineScope { async {} }` + `awaitAll` es perfecto para **2 o 3 llamadas conocidas de antemano** (correo, push, antifraude). Pero, ¿y si tienes que llamar a un servicio externo **una vez por cada elemento de una lista** de tamaño N? Por ejemplo, un consumer que recibe un lote de movimientos y por cada uno consulta las preferencias del destinatario en otro servicio.
 
-!!! abstract "Concepto al paso: `awaitBody` no es lo que crees"
-    `awaitBody()` / `awaitBodyOrNull()` **no** son de `kotlinx-coroutines-reactor`: son extensiones de **Spring** (`WebClientExtensions.kt`), hechas a la medida del `WebClient`. Por dentro llaman a las que sí trae el puente de coroutines: `awaitSingle()` y `awaitSingleOrNull()`. La distinción importa: si mañana suspendes sobre un `Mono` que viene de otro lado —R2DBC, o uno que armaste a mano—, no hay extensión de Spring para eso; usas `awaitSingle()` / `awaitSingleOrNull()` directo.
+### Cómo se hace normal (y por qué no conviene)
 
-Lo que trae de verdad `kotlinx-coroutines-reactor`:
-
-```kotlin
-suspend fun <T> Mono<T>.awaitSingle(): T          // error si el Mono está vacío
-suspend fun <T> Mono<T>.awaitSingleOrNull(): T?   // null si está vacío
-fun <T> Flux<T>.asFlow(): Flow<T>                 // Flux -> Flow (para exponer streams)
-fun <T> Flow<T>.asFlux(): Flux<T>                 // Flow -> Flux
-```
-
-Y el camino inverso, cuando necesitas **producir** un `Mono`/`Flux` desde código `suspend` (por ejemplo, para un API que otro código reactivo va a consumir): los builders `mono { ... }` y `flux { ... }`.
-
-!!! warning "Nivel senior: el contexto reactivo no se propaga solo"
-    Reactor lleva su propio `Context` (para el `SecurityContext` de Spring Security reactivo, tracing de Micrometer, etc.). Ese contexto **solo** se inyecta en tu `CoroutineContext` dentro de los builders `mono { }` / `flux { }`. En una `suspend fun` suelta no lo tienes, salvo que el framework te lo propague (WebFlux sí lo hace para el `SecurityContext` en handlers `suspend`, desde Spring Security 5.4+). En la práctica: si dentro de un handler `suspend` necesitas el usuario autenticado, lo lees explícito —`ReactiveSecurityContextHolder.getContext().awaitSingle()`—, no asumas que "está ahí". En nuestro consumer de Kafka no hay `SecurityContext`; esto aplica cuando llevas coroutines a un controller WebFlux.
-
-## Cuando son muchas: N llamadas en paralelo
-
-`coroutineScope { async {} }` + `awaitAll` es perfecto para **2 o 3 llamadas conocidas de antemano** (correo, push y antifraude). Pero, ¿y si tienes que llamar a un servicio externo **una vez por cada elemento de una lista** de tamaño N? Por ejemplo, un consumer que recibe un lote de movimientos y por cada uno consulta las preferencias del destinatario en otro servicio.
-
-La tentación es la misma herramienta:
+Con la stdlib, lo directo es reusar `async` sobre la lista:
 
 ```kotlin
 // Lanza las N a la vez, SIN límite.
 val resultados = items.map { async { llamarServicio(it) } }.awaitAll()
 ```
 
-Con N chico funciona. Con N grande (500 elementos) es un problema: le mandas 500 peticiones simultáneas al servicio de al lado y lo tumbas. Hay que **acotar la concurrencia**.
+Con N chico funciona. Pero tiene dos problemas serios:
 
-**Opción A — stdlib, sin dependencia nueva (`flatMapMerge`):**
+- **No acota la concurrencia.** Con N grande (500 elementos) le mandas 500 peticiones simultáneas al servicio de al lado y lo tumbas. Para limitarlo tendrías que meter un `Semaphore` a mano con su `withPermit`, y el código se ensucia.
+- **Es todo-o-nada con los errores.** Si un elemento falla, `awaitAll` cae de una (fail-fast). No hay forma fácil de decir "3 de 20 fallaron, pero acá van los 17 buenos".
 
-```kotlin
-val resultados = items.asFlow()
-    .flatMapMerge(concurrency = 4) { item -> flow { emit(llamarServicio(item)) } }
-    .toList()
-```
+### Con `parMap`, y cuándo conviene
 
-`flatMapMerge(concurrency = 4)` corre como máximo 4 en paralelo; cuando una termina, entra la siguiente. Viene con `kotlinx-coroutines-core`, que ya tienes por WebFlux.
-
-**Opción B — Arrow (`parMap`), si adoptas su ecosistema:**
+`arrow-fx-coroutines` trae `parMap`, que resuelve las dos cosas de una:
 
 ```kotlin
-val resultados = items.parMap(concurrency = 4) { item -> llamarServicio(item) }
+// Acota a 4 en paralelo, en un solo parámetro.
+val resultados = items.parMap(concurrency = 4) { llamarServicio(it) }
 ```
 
-Más directo de leer, y con un primo útil: `parMapOrAccumulate`, que en vez de tumbar todo cuando uno falla (fail-fast), **acumula los errores** y te deja responder "3 de 20 fallaron" sin perder los 17 que salieron bien.
+!!! abstract "Concepto al paso: qué te da `parMap`"
+    - **Concurrencia acotada sin boilerplate**: `concurrency = N` mete un semáforo interno; corren máximo N a la vez y, al terminar una, entra la siguiente. Sin `Semaphore` a mano.
+    - **Concurrencia estructurada**: por dentro usa `coroutineScope`, así que si uno falla, cancela al resto y propaga — igual que tu `awaitAll`, pero sin escribirlo.
+    - **`parMapOrAccumulate`**: la variante que en vez de fail-fast **acumula los errores**, para responder "3 de 20 fallaron" sin perder los 17 buenos.
 
-!!! abstract "Concepto al paso: la firma de `parMap` y el semáforo"
-    Sin el parámetro `concurrency`, `parMap` lanza **todas** las coroutines a la vez (igual que `map { async }`). Con `concurrency = N`, mete un semáforo interno y acota cuántas corren en paralelo. Por dentro usa `coroutineScope`, así que hereda la concurrencia estructurada: si una falla, cancela al resto y propaga (fail-fast), igual que tu `awaitAll` manual.
+!!! success "Cuándo usar cada uno"
+    - **2–3 llamadas fijas y conocidas** → `coroutineScope { async {} }` + `awaitAll`.
+    - **N llamadas sobre una colección** → `parMap`, sobre todo si N puede crecer (quieres acotar la concurrencia) o si te importan los fallos parciales (`parMapOrAccumulate`).
 
-| Necesidad | stdlib (kotlinx-coroutines) | Arrow (arrow-fx-coroutines) |
-|-----------|-----------------------------|-----------------------------|
-| N llamadas, sin límite | `map { async { … } }.awaitAll()` | `parMap { … }` |
-| N llamadas, con límite | `asFlow().flatMapMerge(N) { … }.toList()` | `parMap(concurrency = N) { … }` |
-| Acumular errores (no fail-fast) | a mano (try/catch por elemento) | `parMapOrAccumulate` |
-
-!!! danger "La regla de la dependencia"
-    Si el **único** uso de Arrow va a ser `parMap`, `flatMapMerge` de la stdlib ya te da concurrencia acotada **sin dependencia nueva** — y esa es la opción por defecto. Arrow se justifica cuando ya usas (o vas a usar) su ecosistema más amplio: `Either`, el DSL `Raise`, validación de dominio; ahí `parMapOrAccumulate` encaja con ese estilo y no es una dependencia aislada para una sola función. Justifica cada dependencia: por qué la necesitas y por qué no la stdlib.
+!!! danger "Antes de meter la dependencia: ¿de verdad la necesitas?"
+    Si el **único** uso de Arrow va a ser `parMap`, la stdlib ya te da concurrencia acotada sin dependencia nueva: `items.asFlow().flatMapMerge(concurrency = 4) { flow { emit(llamarServicio(it)) } }.toList()`. Arrow se justifica cuando ya usas (o vas a usar) su ecosistema más amplio —`Either`, el DSL `Raise`, validación de dominio—; ahí `parMapOrAccumulate` encaja con ese estilo y no es una dependencia aislada para una sola función. Justifica cada dependencia: por qué la necesitas y por qué no la stdlib.
 
 ## En qué hilo corre esto: los dispatchers
 
