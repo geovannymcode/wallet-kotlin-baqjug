@@ -51,7 +51,6 @@ nav:
       - "Fase 9 · Coroutines (avanzada)": fase-09-coroutines.md
       - "Fase 10 · Despliegue con GitHub Actions": fase-10-despliegue.md
   - Referencias: referencias.md
-  - "Apéndice · Coroutines con Reactor y Arrow": apendice-coroutines-reactor-arrow.md
 
 exclude_docs: |
   fase-00-arranque-resume.md
