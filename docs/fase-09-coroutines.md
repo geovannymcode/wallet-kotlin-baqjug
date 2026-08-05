@@ -40,7 +40,11 @@ class NotificationService(
 }
 ```
 
-Dos problemas acá. Primero, **son secuenciales sin necesidad**: las tres llamadas no dependen entre sí, pero el correo espera al push que espera al antifraude. Total: ~600 ms, cuando podrían ser ~200 ms si fueran a la vez. Segundo, durante esos 600 ms el hilo está **bloqueado**. Con muchos eventos entrando, todos tus hilos terminan parados esperando la red, y la app deja de rendir aunque el procesador esté ocioso.
+!!! danger "La forma normal: bloqueante y secuencial (y por qué no conviene)"
+    Dos problemas, y los dos duelen:
+
+    - **Secuencial sin necesidad**: las tres llamadas son independientes, pero el correo espera al push, que espera al antifraude. Total ~600 ms, cuando podrían ser ~200 ms si fueran a la vez.
+    - **El hilo queda bloqueado** esos 600 ms. Con muchos eventos entrando, todos tus hilos terminan parados esperando la red, y la app deja de rendir aunque el procesador esté ocioso.
 
 ## La idea: suspender en vez de bloquear
 
@@ -90,6 +94,9 @@ class NotificationService(
 ```
 
 Fíjate qué cambió. `notificar` ahora es `suspend`. Las tres llamadas se lanzan con `async`, así que arrancan **a la vez** en vez de una tras otra. `awaitAll` espera a que las tres terminen. Y mientras cada una espera su respuesta de red, **no bloquea ningún hilo**. Total: ~200 ms (lo que tarde la más lenta), no 600 ms, y sin hilos congelados.
+
+!!! success "Cuándo usarlo y qué ganas"
+    Para **2–3 llamadas de red independientes** conocidas de antemano, `coroutineScope { async {} }` + `awaitAll` es la herramienta. Lo que ganas frente a la forma normal: **paralelismo** (~200 ms en vez de 600), **sin bloquear hilos** (escalas con pocos hilos aunque haya mucha espera), y **cancelación estructurada** (si una falla, las demás se cancelan solas).
 
 En el tiempo, las tres llamadas se solapan en vez de hacer fila:
 
