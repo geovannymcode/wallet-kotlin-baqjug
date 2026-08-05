@@ -40,7 +40,11 @@ class NotificationService(
 }
 ```
 
-Dos problemas acá. Primero, **son secuenciales sin necesidad**: las tres llamadas no dependen entre sí, pero el correo espera al push que espera al antifraude. Total: ~600 ms, cuando podrían ser ~200 ms si fueran a la vez. Segundo, durante esos 600 ms el hilo está **bloqueado**. Con muchos eventos entrando, todos tus hilos terminan parados esperando la red, y la app deja de rendir aunque el procesador esté ocioso.
+!!! danger "La forma normal: bloqueante y secuencial (y por qué no conviene)"
+    Dos problemas, y los dos duelen:
+
+    - **Secuencial sin necesidad**: las tres llamadas son independientes, pero el correo espera al push, que espera al antifraude. Total ~600 ms, cuando podrían ser ~200 ms si fueran a la vez.
+    - **El hilo queda bloqueado** esos 600 ms. Con muchos eventos entrando, todos tus hilos terminan parados esperando la red, y la app deja de rendir aunque el procesador esté ocioso.
 
 ## La idea: suspender en vez de bloquear
 
@@ -90,6 +94,9 @@ class NotificationService(
 ```
 
 Fíjate qué cambió. `notificar` ahora es `suspend`. Las tres llamadas se lanzan con `async`, así que arrancan **a la vez** en vez de una tras otra. `awaitAll` espera a que las tres terminen. Y mientras cada una espera su respuesta de red, **no bloquea ningún hilo**. Total: ~200 ms (lo que tarde la más lenta), no 600 ms, y sin hilos congelados.
+
+!!! success "Cuándo usarlo y qué ganas"
+    Para **2–3 llamadas de red independientes** conocidas de antemano, `coroutineScope { async {} }` + `awaitAll` es la herramienta. Lo que ganas frente a la forma normal: **paralelismo** (~200 ms en vez de 600), **sin bloquear hilos** (escalas con pocos hilos aunque haya mucha espera), y **cancelación estructurada** (si una falla, las demás se cancelan solas).
 
 En el tiempo, las tres llamadas se solapan en vez de hacer fila:
 
@@ -146,6 +153,45 @@ class MovimientoNotificationListener(
 
 !!! abstract "Spring al paso: `@KafkaListener suspend fun`"
     El método del listener es `suspend`, y con eso puede llamar a `notificationService.notificar(...)`, que también es `suspend`. Spring for Apache Kafka (desde la versión 3.2) detecta que el listener es suspendido y lo corre en una coroutine, sin que tú montes nada más. Así la cadena entera —listener → servicio → clientes HTTP— es no bloqueante de punta a punta.
+
+## Muchas llamadas: `parMap` (Arrow)
+
+`coroutineScope { async {} }` + `awaitAll` es perfecto para **2 o 3 llamadas conocidas de antemano** (correo, push, antifraude). Pero, ¿y si tienes que llamar a un servicio externo **una vez por cada elemento de una lista** de tamaño N? Por ejemplo, un consumer que recibe un lote de movimientos y por cada uno consulta las preferencias del destinatario en otro servicio.
+
+### Cómo se hace normal (y por qué no conviene)
+
+Con la stdlib, lo directo es reusar `async` sobre la lista:
+
+```kotlin
+// Lanza las N a la vez, SIN límite.
+val resultados = items.map { async { llamarServicio(it) } }.awaitAll()
+```
+
+Con N chico funciona. Pero tiene dos problemas serios:
+
+- **No acota la concurrencia.** Con N grande (500 elementos) le mandas 500 peticiones simultáneas al servicio de al lado y lo tumbas. Para limitarlo tendrías que meter un `Semaphore` a mano con su `withPermit`, y el código se ensucia.
+- **Es todo-o-nada con los errores.** Si un elemento falla, `awaitAll` cae de una (fail-fast). No hay forma fácil de decir "3 de 20 fallaron, pero acá van los 17 buenos".
+
+### Con `parMap`, y cuándo conviene
+
+`arrow-fx-coroutines` trae `parMap`, que resuelve las dos cosas de una:
+
+```kotlin
+// Acota a 4 en paralelo, en un solo parámetro.
+val resultados = items.parMap(concurrency = 4) { llamarServicio(it) }
+```
+
+!!! abstract "Concepto al paso: qué te da `parMap`"
+    - **Concurrencia acotada sin boilerplate**: `concurrency = N` mete un semáforo interno; corren máximo N a la vez y, al terminar una, entra la siguiente. Sin `Semaphore` a mano.
+    - **Concurrencia estructurada**: por dentro usa `coroutineScope`, así que si uno falla, cancela al resto y propaga — igual que tu `awaitAll`, pero sin escribirlo.
+    - **`parMapOrAccumulate`**: la variante que en vez de fail-fast **acumula los errores**, para responder "3 de 20 fallaron" sin perder los 17 buenos.
+
+!!! success "Cuándo usar cada uno"
+    - **2–3 llamadas fijas y conocidas** → `coroutineScope { async {} }` + `awaitAll`.
+    - **N llamadas sobre una colección** → `parMap`, sobre todo si N puede crecer (quieres acotar la concurrencia) o si te importan los fallos parciales (`parMapOrAccumulate`).
+
+!!! danger "Antes de meter la dependencia: ¿de verdad la necesitas?"
+    Si el **único** uso de Arrow va a ser `parMap`, la stdlib ya te da concurrencia acotada sin dependencia nueva: `items.asFlow().flatMapMerge(concurrency = 4) { flow { emit(llamarServicio(it)) } }.toList()`. Arrow se justifica cuando ya usas (o vas a usar) su ecosistema más amplio —`Either`, el DSL `Raise`, validación de dominio—; ahí `parMapOrAccumulate` encaja con ese estilo y no es una dependencia aislada para una sola función. Justifica cada dependencia: por qué la necesitas y por qué no la stdlib.
 
 ## En qué hilo corre esto: los dispatchers
 
