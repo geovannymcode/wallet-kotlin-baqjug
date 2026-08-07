@@ -1,6 +1,6 @@
 # Punto de partida · Si arrancas por los eventos
 
-Este taller se puede seguir completo, de la Fase 0 a la 10. Pero si llegas para la **parte de eventos** —de la Fase 5 en adelante—, esta página es tu punto de partida: te pone en contexto y te deja el proyecto listo para arrancar, sin construir toda la base en vivo.
+**Bienvenido.** Vas a construir la parte más jugosa de una wallet: la que desacopla el sistema con **eventos**. Pero antes de escribir la primera línea, necesitas dos cosas para no perderte: **entender qué se construyó antes** —para que nada te suene a magia— y **tener el proyecto corriendo en tu máquina**. Esta página te da las dos, más un repaso rápido del Kotlin que vamos a usar. Cinco minutos aquí, y arrancamos todos parejos: sepas o no sepas Kotlin.
 
 ## Qué se construyó de la Fase 0 a la 4
 
@@ -18,6 +18,55 @@ Todo sobre Kotlin + Spring Boot, con arquitectura **por features** (Tomato: `dom
 ## Por qué arrancamos aquí
 
 La parte de eventos (Fases 5–10) **se apoya** en esa base REST; no la reinventa. Construir las Fases 0 a 4 en vivo se comería el tiempo que queremos dedicarle a lo nuevo: **por qué** desacoplar con eventos, y **cómo** publicarlos y consumirlos. Por eso no la escribimos desde cero hoy: te la damos **lista**, y arrancamos donde empieza lo interesante.
+
+Y algo importante: aquí va a haber gente que **nunca ha tocado Kotlin**, y está perfecto. En las Fases 0 a 4, cada pieza del lenguaje se explicó la primera vez que apareció. Como esas fases te las saltas, la siguiente sección te deja ese repaso en una sola página: así, cuando veas un `data class`, una `sealed class` o un `interface`, ya sabes qué es y no te frena.
+
+## La base de Kotlin que vas a necesitar
+
+Un repaso exprés de las piezas del lenguaje que salieron de la Fase 0 a la 4 y que vas a seguir viendo. Si ya sabes Kotlin, sáltalo; si no, léelo con calma, es corto.
+
+**`val` y `var` — inmutable vs. mutable.** `val` es un valor que **no cambia** después de asignarlo (como `final` en Java); `var` sí cambia. En la wallet, el `id` y el dueño de una cuenta son `val` (fijos); el saldo es `var` (sube y baja).
+
+```kotlin
+val id = UUID.randomUUID()      // fijo, nunca cambia
+var balance = BigDecimal.ZERO   // cambia: el saldo sube y baja
+```
+
+**`class` y el constructor en una línea.** En Kotlin declaras la clase y su constructor juntos. Cada parámetro con `val`/`var` es además una propiedad de la clase. Nada de getters/setters ni de `this.x = x`.
+
+```kotlin
+class AccountEntity(val owner: String, var balance: BigDecimal)
+```
+
+**`data class` — una clase para llevar datos.** Kotlin te genera gratis `equals`, `hashCode`, `toString` y `copy`. En una línea tienes un objeto con sus campos; en Java serían 40 líneas.
+
+```kotlin
+data class AccountResponse(val id: UUID, val owner: String, val balance: BigDecimal)
+```
+
+**`interface` — un contrato.** Dice **qué** operaciones existen, no **cómo**. En la wallet, los repositorios son interfaces y Spring Data las implementa por ti.
+
+```kotlin
+interface AccountRepository : JpaRepository<AccountEntity, UUID>
+```
+
+**`sealed class` — una jerarquía cerrada.** Un conjunto **cerrado** de subclases: el compilador las conoce todas. Modela los finales posibles de una operación, y en un `when` te obliga a cubrir todos los casos (si falta uno, **no compila**). Es un `enum` con esteroides: cada caso puede llevar sus propios datos.
+
+```kotlin
+sealed class MoveResult {
+    data object Success : MoveResult()
+    data object InsufficientFunds : MoveResult()
+    data class AccountNotFound(val id: UUID) : MoveResult()
+}
+```
+
+**Y dos que verás seguido:**
+
+- **Null-safety**: un tipo con `?` (`String?`) puede ser nulo; sin `?`, nunca lo es. El operador Elvis `?:` da un valor por defecto si algo viene nulo.
+- **`when`**: como un `switch`, pero de verdad; sobre una `sealed class` te obliga a cubrir todos los casos.
+
+!!! note "Y en Spring, las anotaciones"
+    Verás `@Service` (un bean de lógica), `@RestController` (atiende HTTP y devuelve JSON), `@Entity` (una clase que se guarda en una tabla) y `@Transactional` (envuelve el método en una transacción). Cada una se explica cuando aparece; por ahora quédate con que **le dicen a Spring qué papel juega cada clase**.
 
 ## Ubícate: la rama y el proyecto
 
