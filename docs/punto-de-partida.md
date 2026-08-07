@@ -1,4 +1,4 @@
-# Punto de partida · Si arrancas por los eventos
+# Punto de partida
 
 **Bienvenido.** Vas a construir la parte más jugosa de una wallet: la que desacopla el sistema con **eventos**. Pero antes de escribir la primera línea, necesitas dos cosas para no perderte: **entender qué se construyó antes** —para que nada te suene a magia— y **tener el proyecto corriendo en tu máquina**. Esta página te da las dos, más un repaso rápido del Kotlin que vamos a usar. Cinco minutos aquí, y arrancamos todos parejos: sepas o no sepas Kotlin.
 
