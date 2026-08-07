@@ -12,29 +12,31 @@
         <meta name="author" content="Geovanny Mendoza">
       
       
-        <link rel="canonical" href="https://geovannymcode.github.io/wallet-kotlin-baqjug/">
+        <link rel="canonical" href="https://geovannymcode.github.io/wallet-kotlin-baqjug/fase-05-por-que-eventos/">
       
       
+        <link rel="prev" href="../fase-04-movimientos/">
       
-        <link rel="next" href="requisitos/">
+      
+        <link rel="next" href="../fase-06-publicar-evento/">
       
       
         
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
-        <title>Una wallet en Kotlin: de un endpoint REST a eventos</title>
+        <title>Fase 5 · Por qué eventos - Una wallet en Kotlin: de un endpoint REST a eventos</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,7 +55,7 @@
       
     
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#una-wallet-en-kotlin-de-un-endpoint-rest-a-eventos" class="md-skip">
+        <a href="#fase-5-por-que-eventos" class="md-skip">
           Saltar a contenido
         </a>
       
@@ -92,7 +94,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Cabecera">
-    <a href="." title="Una wallet en Kotlin: de un endpoint REST a eventos" class="md-header__button md-logo" aria-label="Una wallet en Kotlin: de un endpoint REST a eventos" data-md-component="logo">
+    <a href=".." title="Una wallet en Kotlin: de un endpoint REST a eventos" class="md-header__button md-logo" aria-label="Una wallet en Kotlin: de un endpoint REST a eventos" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -112,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Inicio
+              Fase 5 · Por qué eventos
             
           </span>
         </div>
@@ -223,11 +225,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="." class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
         
   
   
@@ -246,7 +246,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="requisitos/" class="md-tabs__link">
+      <a href="../requisitos/" class="md-tabs__link">
         
   
   
@@ -263,11 +263,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="fase-00-arranque/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../fase-00-arranque/" class="md-tabs__link">
           
   
   
@@ -285,7 +287,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="referencias/" class="md-tabs__link">
+      <a href="../referencias/" class="md-tabs__link">
         
   
   
@@ -322,7 +324,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navegación" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="Una wallet en Kotlin: de un endpoint REST a eventos" class="md-nav__button md-logo" aria-label="Una wallet en Kotlin: de un endpoint REST a eventos" data-md-component="logo">
+    <a href=".." title="Una wallet en Kotlin: de un endpoint REST a eventos" class="md-nav__button md-logo" aria-label="Una wallet en Kotlin: de un endpoint REST a eventos" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -349,37 +351,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Inicio
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -395,81 +370,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Tabla de contenidos
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#el-problema" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        El problema
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#por-que-este-stack-y-no-otro" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Por qué este stack (y no otro)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#y-mas-adelante-desacoplar-con-eventos" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Y más adelante: desacoplar con eventos
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#como-esta-organizada" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cómo está organizada
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#versiones" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Versiones
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -481,7 +381,7 @@
   
   
     <li class="md-nav__item">
-      <a href="requisitos/" class="md-nav__link">
+      <a href="../requisitos/" class="md-nav__link">
         
   
   
@@ -505,26 +405,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -542,7 +447,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -560,7 +465,7 @@
   
   
     <li class="md-nav__item">
-      <a href="fase-00-arranque/" class="md-nav__link">
+      <a href="../fase-00-arranque/" class="md-nav__link">
         
   
   
@@ -588,7 +493,7 @@
   
   
     <li class="md-nav__item">
-      <a href="fase-01-dominio/" class="md-nav__link">
+      <a href="../fase-01-dominio/" class="md-nav__link">
         
   
   
@@ -616,7 +521,7 @@
   
   
     <li class="md-nav__item">
-      <a href="fase-02-rest/" class="md-nav__link">
+      <a href="../fase-02-rest/" class="md-nav__link">
         
   
   
@@ -644,7 +549,7 @@
   
   
     <li class="md-nav__item">
-      <a href="fase-03-transferencia/" class="md-nav__link">
+      <a href="../fase-03-transferencia/" class="md-nav__link">
         
   
   
@@ -672,7 +577,7 @@
   
   
     <li class="md-nav__item">
-      <a href="fase-04-movimientos/" class="md-nav__link">
+      <a href="../fase-04-movimientos/" class="md-nav__link">
         
   
   
@@ -697,10 +602,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="fase-05-por-que-eventos/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fase 5 · Por qué eventos
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -716,6 +648,70 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#el-problema-otra-vez-pero-en-serio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        El problema, otra vez, pero en serio
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#el-vocabulario-minimo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        El vocabulario mínimo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lo-que-no-resuelve-la-magia" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lo que NO resuelve la magia
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cierre-de-la-fase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cierre de la fase
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -728,7 +724,7 @@
   
   
     <li class="md-nav__item">
-      <a href="fase-06-publicar-evento/" class="md-nav__link">
+      <a href="../fase-06-publicar-evento/" class="md-nav__link">
         
   
   
@@ -756,7 +752,7 @@
   
   
     <li class="md-nav__item">
-      <a href="fase-07-consumir-evento/" class="md-nav__link">
+      <a href="../fase-07-consumir-evento/" class="md-nav__link">
         
   
   
@@ -784,7 +780,7 @@
   
   
     <li class="md-nav__item">
-      <a href="fase-08-que-sigue/" class="md-nav__link">
+      <a href="../fase-08-que-sigue/" class="md-nav__link">
         
   
   
@@ -812,7 +808,7 @@
   
   
     <li class="md-nav__item">
-      <a href="fase-09-coroutines/" class="md-nav__link">
+      <a href="../fase-09-coroutines/" class="md-nav__link">
         
   
   
@@ -840,7 +836,7 @@
   
   
     <li class="md-nav__item">
-      <a href="fase-10-despliegue/" class="md-nav__link">
+      <a href="../fase-10-despliegue/" class="md-nav__link">
         
   
   
@@ -875,7 +871,7 @@
   
   
     <li class="md-nav__item">
-      <a href="referencias/" class="md-nav__link">
+      <a href="../referencias/" class="md-nav__link">
         
   
   
@@ -915,116 +911,54 @@
   
 
 
-<h1 id="una-wallet-en-kotlin-de-un-endpoint-rest-a-eventos">Una wallet en Kotlin, de un endpoint REST a eventos<a class="headerlink" href="#una-wallet-en-kotlin-de-un-endpoint-rest-a-eventos" title="Permanent link">&para;</a></h1>
-<p>Esta guía construye desde cero una billetera digital en Kotlin y Spring Boot. El problema es engañosamente simple: mover plata de una cuenta a otra <strong>sin perder ni duplicar un peso</strong>, validando que haya saldo y dejando registro de cada movimiento. Suena trivial; no lo es. Lo resolvemos primero con un endpoint REST directo contra Postgres —esa es la base, y es donde ponemos el grueso del trabajo— y más adelante ese mismo movimiento viaja como un evento que otros servicios consumen. Se puede seguir sola, de principio a fin.</p>
-<p>Si nunca tocaste Kotlin, tranquilo: vamos explicando cada cosa del lenguaje la primera vez que aparece. Si vienes de Kotlin pero nunca hiciste Spring, igual: cada anotación y cada pieza de infraestructura se explica cuando entra en juego. No asumo que porque lees una cosa ya sabes la otra.</p>
-<div class="admonition note">
-<p class="admonition-title">Esto no es un 'hola mundo'</p>
-<p>Aunque explicamos todo desde la base, lo que construimos tiene sustancia: dinero con <code>BigDecimal</code>, una transferencia transaccional que no puede dejar saldos rotos, y una arquitectura limpia organizada por features. Los conceptos difíciles no se esconden, se explican.</p>
-</div>
-<h2 id="el-problema">El problema<a class="headerlink" href="#el-problema" title="Permanent link">&para;</a></h2>
-<p>Una billetera tiene que hacer tres cosas, y las tres bien:</p>
+<h1 id="fase-5-por-que-eventos">Fase 5 · Por qué eventos<a class="headerlink" href="#fase-5-por-que-eventos" title="Permanent link">&para;</a></h1>
+<p><strong>Rama</strong>: no hay código nuevo en esta fase, es la que te da el mapa mental. Si vas a saltar directo a la parte de eventos, arranca leyendo esta.</p>
+<p><strong>Lo que vas a lograr</strong>: entender qué problema resuelve la mensajería por eventos y el vocabulario mínimo (broker, topic, producer, consumer, grupo, offset) antes de escribir una línea.</p>
+<hr />
+<h2 id="el-problema-otra-vez-pero-en-serio">El problema, otra vez, pero en serio<a class="headerlink" href="#el-problema-otra-vez-pero-en-serio" title="Permanent link">&para;</a></h2>
+<p>En la Fase 4 dejamos esta costura en <code>transfer</code>:</p>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">result</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="n">MoveResult</span><span class="p">.</span><span class="na">Success</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">    </span><span class="n">movementService</span><span class="p">.</span><span class="na">record</span><span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="na">fromId</span><span class="p">,</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">toId</span><span class="p">,</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">amount</span><span class="p">)</span><span class="w"> </span><span class="c1">// llamada directa</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Funciona. El problema aparece cuando el negocio crece. A una transferencia real, con el tiempo, le cuelgan cosas: registra el movimiento, manda un correo, dispara una notificación push, avisa a antifraude, refresca un tablero de métricas. Si todo eso sale de este <code>if</code>, pasan tres cosas feas:</p>
 <ul>
-<li><strong>Consultar el saldo</strong> de una cuenta.</li>
-<li><strong>Transferir plata</strong> de una cuenta a otra, rechazando la operación si no hay fondos.</li>
-<li><strong>Registrar cada movimiento</strong>, para que nada quede sin rastro.</li>
+<li><code>transfer</code> termina <strong>conociendo</strong> a media empresa. Cada cosa nueva es un import y una llamada más acá adentro.</li>
+<li>Si el servicio de correo está lento, la transferencia queda lenta. Si se cae, la transferencia se cae con él. Uno arrastra al otro.</li>
+<li>Agregar un consumidor nuevo obliga a <strong>tocar y volver a desplegar</strong> <code>transfer</code>, aunque <code>transfer</code> no cambió en nada su lógica.</li>
 </ul>
-<p>Lo delicado no es el "qué", es el "cómo". Una transferencia no puede quedar a medias —la cuenta de origen debitada y la de destino sin acreditar—, y el dinero no admite errores de redondeo. Todo lo que construimos de la Fase 0 a la 4 gira alrededor de resolver eso bien: una wallet que mueve plata de verdad, por REST, contra una base real.</p>
-<p>A vista de pájaro es simple: unos clientes entran por HTTP a una aplicación, y esa aplicación lee y escribe en una base Postgres. La forma completa la ves en la <a href="fase-00-arranque/">Fase 0</a>.</p>
-<p><img alt="Resumen del flujo síncrono: la petición REST entra a transfer, que valida y mueve el saldo en account, y registra el movimiento en movement con una llamada directa dentro del mismo proceso" src="img/Img_9.png" /></p>
-<h2 id="por-que-este-stack-y-no-otro">Por qué este stack (y no otro)<a class="headerlink" href="#por-que-este-stack-y-no-otro" title="Permanent link">&para;</a></h2>
-<p>Cada pieza responde a un requisito del problema, no a la moda:</p>
-<ul>
-<li><strong>Kotlin</strong> — expresivo y seguro: <code>data class</code> para objetos de datos en una línea, null-safety para que los nulos no exploten en tiempo de ejecución, y <code>sealed class</code> para modelar con exactitud los desenlaces de una operación. Menos código que Java para lo mismo.</li>
-<li><strong>Spring Boot</strong> — servidor web, acceso a datos e inyección de dependencias sin configurar medio mundo. Te concentras en la lógica; Boot cablea lo aburrido.</li>
-<li><strong>PostgreSQL (Supabase)</strong> — una base <strong>relacional con transacciones ACID</strong>, porque una transferencia es todo-o-nada. ¿Por qué no una NoSQL? Porque acá el corazón es la <strong>consistencia sobre dinero</strong>: una relacional te la da de frente, mientras que en una documental tendrías que inventar la transaccionalidad a mano.</li>
-<li><strong><code>BigDecimal</code> con <code>NUMERIC</code></strong> — dinero exacto. Nada de <code>Double</code>, que redondea mal y en un saldo eso es un desastre.</li>
-<li><strong>Flyway</strong> — el esquema de la base versionado en el repo, reproducible en cualquier máquina.</li>
-</ul>
-<p>El "por qué" completo, requisito por requisito, está en la <a href="fase-00-arranque/">Fase 0</a>.</p>
-<h2 id="y-mas-adelante-desacoplar-con-eventos">Y más adelante: desacoplar con eventos<a class="headerlink" href="#y-mas-adelante-desacoplar-con-eventos" title="Permanent link">&para;</a></h2>
-<p>Cuando la wallet crece, a cada transferencia le empiezan a colgar cosas: manda un correo, dispara un push, avisa a antifraude, refresca métricas. Hacerlo todo con llamadas directas termina en un <code>transfer</code> que conoce a media empresa y que se cae si se cae el correo. La mensajería por eventos corta ese nudo: <code>transfer</code> publica un hecho, "se registró un movimiento", y se desentiende; cada interesado reacciona por su cuenta.</p>
-<p><img alt="Resumen del flujo por eventos: transfer mueve el saldo en account y publica el evento MovimientoRegistrado en Redpanda, que notification consume y notifica" src="img/Img_10.png" /></p>
-<p>Eso —y cómo endurecerlo para producción, las coroutines y el despliegue— lo construyes <strong>de la Fase 5 en adelante</strong>. Si por ahora vienes por la parte REST, con las Fases 0 a 4 ya tienes una wallet completa y redonda.</p>
-<h2 id="como-esta-organizada">Cómo está organizada<a class="headerlink" href="#como-esta-organizada" title="Permanent link">&para;</a></h2>
-<p>Cada fase es una etapa y, en el repo, una rama. Puedes hacer <code>git checkout</code> a cualquiera para seguir desde ahí si te atrasas.</p>
-<table>
-<thead>
-<tr>
-<th>Fase</th>
-<th>Rama</th>
-<th>Qué construye</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0</td>
-<td><code>fase-0</code></td>
-<td>El problema, el andamiaje y Supabase</td>
-</tr>
-<tr>
-<td>1</td>
-<td><code>fase-1</code></td>
-<td>El dominio: cuenta, saldo, JPA y Flyway</td>
-</tr>
-<tr>
-<td>2</td>
-<td><code>fase-2</code></td>
-<td>Exponer el saldo por REST</td>
-</tr>
-<tr>
-<td>3</td>
-<td><code>fase-3</code></td>
-<td>Transferencia con validación de saldo</td>
-</tr>
-<tr>
-<td>4</td>
-<td><code>fase-4</code></td>
-<td>Registro de movimientos (llamada directa)</td>
-</tr>
-<tr>
-<td>5</td>
-<td><code>fase-5</code></td>
-<td>Por qué eventos: broker, topic, producer, consumer</td>
-</tr>
-<tr>
-<td>6</td>
-<td><code>fase-6</code></td>
-<td>Publicar el evento con Redpanda</td>
-</tr>
-<tr>
-<td>7</td>
-<td><code>fase-7</code> = <code>main</code></td>
-<td>Consumir el evento desde otro servicio</td>
-</tr>
-<tr>
-<td>8</td>
-<td>(referencia)</td>
-<td>De demo a producción: outbox, idempotencia, DLQ</td>
-</tr>
-<tr>
-<td>9</td>
-<td>(opcional)</td>
-<td>Coroutines: un consumidor no bloqueante</td>
-</tr>
-<tr>
-<td>10</td>
-<td>(despliegue)</td>
-<td>Docker, GitHub Actions y deploy a la nube</td>
-</tr>
-</tbody>
-</table>
-<div class="admonition tip">
-<p class="admonition-title">Puedes entrar por cualquier fase</p>
-<p>Cada rama deja el proyecto justo en el estado de esa fase. Si te perdiste en un paso, <code>git checkout fase-2</code> y sigues desde ahí sin quedarte atrás. Y si lo que te interesa es directamente la parte de eventos, <code>git checkout fase-4</code> te pone en la línea de salida con toda la base REST ya lista. La rama <code>main</code> es la versión final con eventos.</p>
+<p>La mensajería por eventos corta ese nudo. En vez de que <code>transfer</code> llame a cada interesado, publica un hecho, "se registró un movimiento", y se desentiende. Los interesados escuchan por su cuenta.</p>
+<p><img alt="Antes (acoplado): transfer llama directo a movement, correo, push y antifraude. Después (por eventos): transfer solo publica el evento MovimientoRegistrado en el broker, y movement, notificación y antifraude lo escuchan cada uno por su cuenta" src="../img/Img_3.png" /></p>
+<p><code>transfer</code> ya no sabe quién escucha ni cuántos. Publica y sigue. Ese es todo el truco, y cambia cómo crece el sistema.</p>
+<h2 id="el-vocabulario-minimo">El vocabulario mínimo<a class="headerlink" href="#el-vocabulario-minimo" title="Permanent link">&para;</a></h2>
+<div class="admonition abstract">
+<p class="admonition-title">Concepto al paso: evento</p>
+<p>Un evento es un hecho que ya ocurrió, contado en pasado: "se registró un movimiento", "se creó una cuenta". No es una orden ("registra este movimiento"), es una notificación de algo que pasó. Quien lo emite no espera respuesta ni sabe quién lo va a usar.</p>
 </div>
-<h2 id="versiones">Versiones<a class="headerlink" href="#versiones" title="Permanent link">&para;</a></h2>
-<p>Kotlin 2.3 · Spring Boot 4.1 · JDK 25 · Spring Data JPA · Flyway · Spring for Apache Kafka · Supabase (PostgreSQL 17) · Redpanda · Docker · GitHub Actions.</p>
-<div class="admonition note">
-<p class="admonition-title">Confirma versiones en el asistente</p>
-<p>En <a href="https://start.spring.io">start.spring.io</a> las versiones cambian con el tiempo. Si no ves Spring Boot 4.1, elige la 4.x estable más cercana. El asistente se encarga de que las dependencias sean compatibles entre sí.</p>
+<div class="admonition abstract">
+<p class="admonition-title">Concepto al paso: broker</p>
+<p>El broker es el intermediario por donde pasan los eventos. El productor le entrega el evento al broker, y el broker se lo guarda y se lo entrega a quien esté suscrito. Kafka es el broker más conocido. Nosotros usamos <strong>Redpanda</strong>, que habla el mismo protocolo de Kafka pero es más liviano y no necesita Zookeeper.</p>
 </div>
-<p>Cuando estés listo, revisa <a href="requisitos/">Requisitos y setup</a> y arranca por la <a href="fase-00-arranque/">Fase 0</a>.</p>
+<div class="admonition abstract">
+<p class="admonition-title">Concepto al paso: topic</p>
+<p>Un topic es un canal con nombre dentro del broker, como una lista de eventos del mismo tipo. Nosotros vamos a publicar en un topic llamado <code>wallet.movements</code>. Los productores publican en un topic; los consumidores se suscriben a un topic.</p>
+</div>
+<div class="admonition abstract">
+<p class="admonition-title">Concepto al paso: producer y consumer</p>
+<p>El <strong>producer</strong> (productor) publica eventos en un topic. En nuestro caso, <code>transfer</code> va a ser el productor. El <strong>consumer</strong> (consumidor) se suscribe a un topic y procesa lo que llega. <code>notification</code> y <code>movement</code> van a ser consumidores del mismo topic.</p>
+</div>
+<div class="admonition abstract">
+<p class="admonition-title">Concepto al paso: consumer group y por qué importa</p>
+<p>Cada consumidor pertenece a un <strong>grupo</strong>. La regla clave: un evento se entrega <strong>una vez por grupo</strong>. Si <code>notification</code> y <code>movement</code> están en grupos distintos, los dos reciben cada evento y cada uno hace lo suyo. Si pones diez instancias de <code>notification</code> en el <strong>mismo</strong> grupo, el broker reparte los eventos entre ellas para escalar, sin duplicar el trabajo. Grupos distintos = todos se enteran; mismo grupo = se reparten la carga.</p>
+</div>
+<div class="admonition abstract">
+<p class="admonition-title">Concepto al paso: offset</p>
+<p>El broker no borra el evento cuando lo entrega: lo guarda en orden y le pone un número, el <strong>offset</strong>. Cada grupo lleva su propia marca de "voy por acá". Por eso un consumidor que se cae y vuelve retoma donde quedó, y por eso puedes meter un consumidor nuevo que lea desde el principio. El evento vive en el log, no se consume y desaparece.</p>
+</div>
+<h2 id="lo-que-no-resuelve-la-magia">Lo que NO resuelve la magia<a class="headerlink" href="#lo-que-no-resuelve-la-magia" title="Permanent link">&para;</a></h2>
+<p>Los eventos desacoplan, pero traen sus propias preguntas. ¿Qué pasa si el consumidor procesa el mismo evento dos veces? ¿Qué pasa si guardaste el movimiento en la base pero el broker se cayó justo antes de publicar? Esas son idempotencia y el patrón outbox, y las vemos de cerca en la <a href="../fase-08-que-sigue/">Fase 8</a>. Por ahora quédate con el mapa: productor, topic, broker, consumidores en grupos, offsets.</p>
+<h2 id="cierre-de-la-fase">Cierre de la fase<a class="headerlink" href="#cierre-de-la-fase" title="Permanent link">&para;</a></h2>
+<p>No hay commit acá, es teoría. En la <a href="../fase-06-publicar-evento/">Fase 6</a> montamos Redpanda y hacemos que <code>transfer</code> publique el evento en vez de llamar a <code>movement</code> directo.</p>
 
 
 
@@ -1111,10 +1045,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "toc.integrate", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado al portapapeles", "clipboard.copy": "Copiar al portapapeles", "search.result.more.one": "1 m\u00e1s en esta p\u00e1gina", "search.result.more.other": "# m\u00e1s en esta p\u00e1gina", "search.result.none": "No se encontraron documentos", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Teclee para comenzar b\u00fasqueda", "search.result.term.missing": "Falta", "select.version": "Seleccionar versi\u00f3n"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "toc.integrate", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado al portapapeles", "clipboard.copy": "Copiar al portapapeles", "search.result.more.one": "1 m\u00e1s en esta p\u00e1gina", "search.result.more.other": "# m\u00e1s en esta p\u00e1gina", "search.result.none": "No se encontraron documentos", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Teclee para comenzar b\u00fasqueda", "search.result.term.missing": "Falta", "select.version": "Seleccionar versi\u00f3n"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

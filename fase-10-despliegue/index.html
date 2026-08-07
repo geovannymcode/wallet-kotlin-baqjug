@@ -12,13 +12,13 @@
         <meta name="author" content="Geovanny Mendoza">
       
       
-        <link rel="canonical" href="https://geovannymcode.github.io/wallet-kotlin-baqjug/requisitos/">
+        <link rel="canonical" href="https://geovannymcode.github.io/wallet-kotlin-baqjug/fase-10-despliegue/">
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../fase-09-coroutines/">
       
       
-        <link rel="next" href="../fase-00-arranque/">
+        <link rel="next" href="../referencias/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Requisitos y setup - Una wallet en Kotlin: de un endpoint REST a eventos</title>
+        <title>Fase 10 · Despliegue con GitHub Actions - Una wallet en Kotlin: de un endpoint REST a eventos</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#requisitos-y-setup" class="md-skip">
+        <a href="#fase-10-despliegue-con-github-actions" class="md-skip">
           Saltar a contenido
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Requisitos y setup
+              Fase 10 · Despliegue con GitHub Actions
             
           </span>
         </div>
@@ -244,11 +244,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="./" class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../requisitos/" class="md-tabs__link">
         
   
   
@@ -265,10 +263,12 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../fase-00-arranque/" class="md-tabs__link">
           
   
@@ -378,37 +378,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Requisitos y setup
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../requisitos/" class="md-nav__link">
         
   
   
@@ -424,76 +397,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Tabla de contenidos
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#en-tu-maquina" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        En tu máquina
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#en-la-nube-se-configura-en-vivo" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        En la nube (se configura en vivo)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="En la nube (se configura en vivo)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#supabase-la-base-de-datos" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Supabase (la base de datos)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#redpanda-para-la-parte-de-eventos" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Redpanda (para la parte de eventos)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -502,26 +405,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -539,7 +447,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -834,10 +742,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../fase-10-despliegue/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fase 10 · Despliegue con GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -853,6 +788,81 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#parte-1-empaquetar-la-app-en-una-imagen-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parte 1 — Empaquetar la app en una imagen Docker
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parte-2-el-pipeline-de-integracion-continua-github-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parte 2 — El pipeline de integración continua (GitHub Actions)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parte-3-desplegar-a-render-o-railway" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parte 3 — Desplegar a Render (o Railway)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parte-4-variables-de-entorno-y-secretos-en-un-solo-lugar-mental" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parte 4 — Variables de entorno y secretos, en un solo lugar mental
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cierre-de-la-fase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cierre de la fase
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -912,65 +922,131 @@
   
 
 
-<h1 id="requisitos-y-setup">Requisitos y setup<a class="headerlink" href="#requisitos-y-setup" title="Permanent link">&para;</a></h1>
-<p>La idea de este taller es que nadie pierda 20 minutos peleando con infraestructura que no arranca. El grueso del stack corre en la nube y se configura desde el navegador: Supabase para Postgres y Redpanda para los eventos. Docker aparece solo en las fases finales —el correo de prueba con Mailpit (Fase 7) y la imagen de la app (Fase 10)—; lo demás es lo de siempre para programar en Kotlin.</p>
-<h2 id="en-tu-maquina">En tu máquina<a class="headerlink" href="#en-tu-maquina" title="Permanent link">&para;</a></h2>
+<h1 id="fase-10-despliegue-con-github-actions">Fase 10 · Despliegue con GitHub Actions<a class="headerlink" href="#fase-10-despliegue-con-github-actions" title="Permanent link">&para;</a></h1>
+<p><strong>Rama</strong>: opcional, es el paso de "shipping". Hasta acá corriste todo en tu máquina; esta fase lleva la wallet a la nube y hace que cada <code>push</code> a <code>main</code> la construya, la teste y la despliegue sola.
+<strong>Lo que vas a lograr</strong>: empaquetar la app en una imagen Docker, montar un pipeline de GitHub Actions que compila y testea, y desplegar a Render (o Railway) con <code>push</code> a <code>main</code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Esta fase es de operaciones (ops), no de código de negocio</p>
+<p>Nada del código de negocio cambia. Acá montamos lo que falta para que la wallet viva fuera de tu laptop: imagen Docker, integración continua y despliegue. Es opcional, pero es lo que separa "me corre en local" de "está en internet".</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">El correo ya lo montamos en la Fase 7</p>
+<p>En la Fase 7, <code>notification</code> manda el correo con Mailpit en local. Al desplegar, las variables <code>SMTP_*</code> dejan de apuntar a Mailpit y apuntan a un proveedor real (SendGrid, Amazon SES, Mailgun). El código no cambia; solo las variables.</p>
+</div>
+<hr />
+<h2 id="parte-1-empaquetar-la-app-en-una-imagen-docker">Parte 1 — Empaquetar la app en una imagen Docker<a class="headerlink" href="#parte-1-empaquetar-la-app-en-una-imagen-docker" title="Permanent link">&para;</a></h2>
+<p>Para que la wallet corra en cualquier lado igual que en tu máquina, la metemos en una <strong>imagen Docker</strong>: un paquete con la app y todo lo que necesita para arrancar.</p>
+<div class="admonition abstract">
+<p class="admonition-title">Concepto al paso: imagen Docker y build multi-etapa</p>
+<p>Una imagen Docker es una plantilla con tu app lista para correr. La construimos en <strong>dos etapas</strong>: la primera tiene el JDK completo y compila el <code>jar</code>; la segunda, mucho más liviana, solo tiene el JRE y el <code>jar</code> ya compilado. Así la imagen final no carga con el compilador ni el código fuente: pesa menos y arranca más rápido.</p>
+</div>
+<div class="language-dockerfile highlight"><span class="filename">Dockerfile</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c"># Etapa 1: compilar</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">FROM</span><span class="w"> </span><span class="s">eclipse-temurin:25-jdk</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="s">build</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">WORKDIR</span><span class="w"> </span><span class="s">/app</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">COPY</span><span class="w"> </span>.<span class="w"> </span>.
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">RUN</span><span class="w"> </span>./gradlew<span class="w"> </span>bootJar<span class="w"> </span>--no-daemon
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c"># Etapa 2: correr (imagen liviana, solo JRE)</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="k">FROM</span><span class="w"> </span><span class="s">eclipse-temurin:25-jre</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="k">WORKDIR</span><span class="w"> </span><span class="s">/app</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="k">COPY</span><span class="w"> </span>--from<span class="o">=</span>build<span class="w"> </span>/app/build/libs/*.jar<span class="w"> </span>app.jar
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="k">EXPOSE</span><span class="w"> </span><span class="s">8080</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="k">ENTRYPOINT</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;java&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;-jar&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;app.jar&quot;</span><span class="p">]</span>
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Alternativa sin Dockerfile</p>
+<p>Spring Boot puede armar la imagen solo, con <code>./gradlew bootBuildImage</code> (usa buildpacks, sin escribir un Dockerfile). Cualquiera de las dos sirve; el Dockerfile es más explícito y portable entre hosts, por eso lo mostramos.</p>
+</div>
+<h2 id="parte-2-el-pipeline-de-integracion-continua-github-actions">Parte 2 — El pipeline de integración continua (GitHub Actions)<a class="headerlink" href="#parte-2-el-pipeline-de-integracion-continua-github-actions" title="Permanent link">&para;</a></h2>
+<p>Queremos que cada cambio se compile y se testee solo, antes de desplegar nada.</p>
+<div class="admonition abstract">
+<p class="admonition-title">Concepto al paso: CI/CD y GitHub Actions</p>
+<p><strong>CI</strong> (integración continua) es automatizar que, con cada <code>push</code>, se compile y se corran los tests. <strong>CD</strong> (despliegue continuo) es que, si eso pasa, se despliegue solo. <strong>GitHub Actions</strong> ejecuta esos pasos en un <em>runner</em> (una máquina que GitHub te presta) según recetas en <code>.github/workflows/</code>. Cada receta es un <em>workflow</em>.</p>
+</div>
+<div class="language-yaml highlight"><span class="filename">.github/workflows/ci.yml</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CI</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nt">on</span><span class="p">:</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">push</span><span class="p">:</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nt">branches</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">main</span><span class="p p-Indicator">]</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">pull_request</span><span class="p">:</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">branches</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">main</span><span class="p p-Indicator">]</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="nt">jobs</span><span class="p">:</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">build</span><span class="p">:</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v4</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Configurar JDK 25</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">        </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/setup-java@v4</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">        </span><span class="nt">with</span><span class="p">:</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">          </span><span class="nt">distribution</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">temurin</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">          </span><span class="nt">java-version</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;25&#39;</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Compilar y testear</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./gradlew test</span>
+</span></code></pre></div>
+<div class="admonition abstract">
+<p class="admonition-title">Spring al paso: por qué los tests corren sin infra</p>
+<p>¿Te acuerdas del test de la Fase 4 con MockK? Corre sin base ni broker, así que el runner de GitHub lo ejecuta sin levantar Supabase ni Redpanda. Los tests que sí necesitan infra real (con Testcontainers) también corren en Actions, porque el runner tiene Docker; eso ya es un paso más avanzado.</p>
+</div>
+<h2 id="parte-3-desplegar-a-render-o-railway">Parte 3 — Desplegar a Render (o Railway)<a class="headerlink" href="#parte-3-desplegar-a-render-o-railway" title="Permanent link">&para;</a></h2>
+<p>Render y Railway despliegan tu imagen Docker directo desde el repo. La forma más simple para un taller es dejar que <strong>el propio host construya y despliegue</strong> con cada <code>push</code> a <code>main</code>:</p>
+<ol>
+<li>En Render, creas un <strong>Web Service</strong> y conectas tu repo de GitHub.</li>
+<li>Eliges <strong>Docker</strong> como entorno: Render detecta tu <code>Dockerfile</code> y construye la imagen.</li>
+<li>En <strong>Environment</strong>, pones las variables (las mismas que usas en local, con los valores de la nube).</li>
+<li>Cada <code>push</code> a <code>main</code> dispara un build y un deploy automáticos.</li>
+</ol>
+<p>Así queda un reparto limpio: <strong>GitHub Actions hace el CI</strong> (compila y testea) y <strong>Render hace el CD</strong> (construye la imagen y la despliega). No necesitas meter secretos de despliegue en Actions.</p>
+<div class="admonition note">
+<p class="admonition-title">Si quieres disparar el deploy desde Actions</p>
+<p>Render te da un <em>Deploy Hook</em> (una URL secreta). Si prefieres que el deploy ocurra solo después de que pasen los tests, guardas esa URL como secreto en GitHub y agregas un paso al final del workflow:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Desplegar en Render</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">if</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github.ref == &#39;refs/heads/main&#39;</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">curl -fsSL &quot;$RENDER_DEPLOY_HOOK&quot;</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">env</span><span class="p">:</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">RENDER_DEPLOY_HOOK</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.RENDER_DEPLOY_HOOK }}</span>
+</span></code></pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">La UI de estos hosts cambia seguido</p>
+<p>Los pasos exactos de Render/Railway (nombres de botones, capa gratis) cambian con el tiempo. Toma esto como el mapa —conectar repo, elegir Docker, poner variables, deploy con push— y confirma el detalle en su documentación al momento de hacerlo.</p>
+</div>
+<h2 id="parte-4-variables-de-entorno-y-secretos-en-un-solo-lugar-mental">Parte 4 — Variables de entorno y secretos, en un solo lugar mental<a class="headerlink" href="#parte-4-variables-de-entorno-y-secretos-en-un-solo-lugar-mental" title="Permanent link">&para;</a></h2>
+<p>El código nunca sabe un secreto; lo lee del entorno. Lo que cambia es <strong>quién</strong> pone esas variables en cada lado:</p>
+<ul>
+<li><strong>En tu máquina</strong>: en IntelliJ (<strong>Run → Edit Configurations → Environment variables</strong>).</li>
+<li><strong>En GitHub Actions</strong>: en <strong>Settings → Secrets and variables → Actions</strong> del repo.</li>
+<li><strong>En Render/Railway</strong>: en la sección <strong>Environment</strong> del servicio.</li>
+</ul>
+<p>Las que necesita la wallet:</p>
 <table>
 <thead>
 <tr>
-<th>Herramienta</th>
-<th>Versión</th>
+<th>Variable</th>
 <th>Para qué</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>JDK</strong></td>
-<td>25</td>
-<td>Compilar y correr. Sirve Temurin, Zulu o el que uses</td>
+<td><code>SUPABASE_DB_URL</code> / <code>SUPABASE_DB_USER</code> / <code>SUPABASE_DB_PASSWORD</code></td>
+<td>La base Postgres</td>
 </tr>
 <tr>
-<td><strong>IntelliJ IDEA</strong></td>
-<td>Community o Ultimate</td>
-<td>El IDE. Community alcanza de sobra</td>
+<td><code>REDPANDA_BOOTSTRAP</code> / <code>REDPANDA_USER</code> / <code>REDPANDA_PASSWORD</code></td>
+<td>El broker de eventos</td>
 </tr>
 <tr>
-<td><strong>Git</strong></td>
-<td>cualquiera reciente</td>
-<td>Clonar el repo y moverte entre fases</td>
-</tr>
-<tr>
-<td>Un cliente REST</td>
-<td>Bruno, Postman o <code>curl</code></td>
-<td>Probar los endpoints</td>
-</tr>
-<tr>
-<td><strong>Docker</strong></td>
-<td>reciente</td>
-<td>Solo desde la Fase 7: el correo de prueba (Mailpit) y empaquetar la app</td>
+<td><code>SMTP_HOST</code> / <code>SMTP_PORT</code> / <code>SMTP_USER</code> / <code>SMTP_PASSWORD</code></td>
+<td>El correo (Mailpit en local, un proveedor real en la nube)</td>
 </tr>
 </tbody>
 </table>
-<p>La base y el broker viven en la nube, así que no montas nada local para eso. Docker no lo necesitas al arrancar: entra en juego recién en la Fase 7 (correo con Mailpit) y en la Fase 10 (despliegue). Si ya programas en Java o Kotlin, seguro tienes casi todo esto.</p>
-<h2 id="en-la-nube-se-configura-en-vivo">En la nube (se configura en vivo)<a class="headerlink" href="#en-la-nube-se-configura-en-vivo" title="Permanent link">&para;</a></h2>
-<h3 id="supabase-la-base-de-datos">Supabase (la base de datos)<a class="headerlink" href="#supabase-la-base-de-datos" title="Permanent link">&para;</a></h3>
-<p>Supabase te da un Postgres gestionado detrás de un login con GitHub. Lo configuramos en la Fase 0.</p>
-<ol>
-<li>Entra a <a href="https://supabase.com">supabase.com</a> y crea un proyecto (el plan gratis alcanza).</li>
-<li>Guarda la contraseña de la base que te pide al crear el proyecto.</li>
-<li>En <strong>Project Settings → Database</strong> vas a encontrar la cadena de conexión. Esa es la que le pasamos a Spring.</li>
-</ol>
-<h3 id="redpanda-para-la-parte-de-eventos">Redpanda (para la parte de eventos)<a class="headerlink" href="#redpanda-para-la-parte-de-eventos" title="Permanent link">&para;</a></h3>
-<p>Redpanda es un broker compatible con el protocolo de Kafka, más liviano y sin Zookeeper. Para no depender de que cada quien tenga Docker corriendo, usamos <strong>Redpanda Serverless</strong>, que también vive en la nube y se configura desde el navegador. Lo hacemos en la Fase 6.</p>
-<ol>
-<li>Entra a <a href="https://www.redpanda.com">redpanda.com</a> y crea un clúster Serverless (tiene capa gratis).</li>
-<li>Guarda el <strong>bootstrap server</strong> y las credenciales SASL (usuario y contraseña) que te genera.</li>
-</ol>
-<div class="admonition note">
-<p class="admonition-title">Alternativa local con Docker</p>
-<p>Si tienes Docker a mano, puedes levantar Redpanda local con <code>rpk container start</code> en vez de la nube. La guía usa la versión Serverless por defecto para no depender de que cada quien tenga Docker, pero el código es el mismo; solo cambian las propiedades de conexión.</p>
-</div>
-<p>Con esto listo, arranca por la <a href="../fase-00-arranque/">Fase 0</a>.</p>
+<h2 id="cierre-de-la-fase">Cierre de la fase<a class="headerlink" href="#cierre-de-la-fase" title="Permanent link">&para;</a></h2>
+<p>Con esto, la wallet dejó de vivir solo en tu laptop: cada <code>push</code> a <code>main</code> pasa por CI (compila y testea), se construye la imagen Docker, y Render la despliega. Corre en la nube, con su base en Supabase, sus eventos en Redpanda, y correos que en local atrapa Mailpit y en producción salen por un SMTP real.</p>
+<p>Y con eso cerramos el taller: arrancaste con un endpoint REST contra una base, y terminaste con una wallet transaccional, desacoplada por eventos, testeada, empaquetada y desplegada. Nada de humo: código y tuberías de verdad.</p>
+<p>Revisa las <a href="../referencias/">Referencias</a> para seguir por tu cuenta.</p>
 
 
 
