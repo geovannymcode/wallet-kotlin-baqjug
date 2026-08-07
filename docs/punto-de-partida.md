@@ -68,6 +68,60 @@ sealed class MoveResult {
 !!! note "Y en Spring, las anotaciones"
     Verás `@Service` (un bean de lógica), `@RestController` (atiende HTTP y devuelve JSON), `@Entity` (una clase que se guarda en una tabla) y `@Transactional` (envuelve el método en una transacción). Cada una se explica cuando aparece; por ahora quédate con que **le dicen a Spring qué papel juega cada clase**.
 
+## Cómo está organizado el código: *package by feature*
+
+Cuando descargues el proyecto vas a ver que el código **no** está agrupado por capa técnica (una carpeta con todos los controladores, otra con todos los servicios, otra con todos los repositorios). Está agrupado **por feature**. Vale la pena entender por qué, porque de eso depende que te muevas rápido en el código.
+
+### La forma común: *package by layer* (y por qué estorba)
+
+Lo más típico es agrupar por **capa**: `controllers/`, `services/`, `repositories/`, `dtos/`… Todo lo del mismo tipo, junto. Suena ordenado, pero cuando el proyecto crece trae dos dolores:
+
+- **No ves una feature de un vistazo.** Casi siempre llegas al código pensando en algo del negocio ("las transferencias"), no en una capa. Pero para tocar transferencias tienes que **saltar entre cuatro o cinco carpetas lejanas**, porque todo lo de esa cosa quedó regado.
+- **Empujan a clases-dios genéricas.** Como el `TransferService` y el `ExportService` viven en la misma carpeta `services`, es tentador meter todo en un servicio que sirve para todos los casos. Con el tiempo esa clase crece, se llena de `if`, parámetros y genéricos para cubrir más usos, y **cambiar algo se vuelve peligroso**: puedes romper un caso de uso mientras tocas otro. Como dijo Sandi Metz: *"sentía que tenía que entender **todo** para poder ayudar con **cualquier cosa**"*.
+
+### La forma que usamos: *package by feature*
+
+Agrupamos **por feature**: todo lo de cuentas junto, todo lo de transferencias junto, todo lo de movimientos junto. Abres la carpeta `transfer` y ahí está TODO lo de transferencias: su controlador, su servicio, sus DTOs. No buscas en cinco lados.
+
+Así se ve en la wallet:
+
+```
+com.baqjug.wallet
+├── account          # todo lo de cuentas
+│   ├── domain       #   entidad, repositorio, servicio, mapper, DTOs
+│   └── web          #   el controlador REST
+├── transfer         # todo lo de transferencias
+│   ├── domain
+│   ├── web
+│   └── messaging    #   publica el evento (parte de eventos)
+├── movement         # todo lo de movimientos
+│   ├── domain
+│   └── messaging    #   consume el evento y guarda
+├── notification     # consume el evento y notifica
+│   └── messaging
+└── web
+    └── exception    # lo poco compartido: manejo de errores
+```
+
+Cada feature (`account`, `transfer`, `movement`, `notification`) es **autocontenida**: casi todo lo que necesita vive en su propia carpeta.
+
+### Por qué conviene
+
+- **Lo encuentras todo junto.** Llegas con una idea del negocio y todo su código está en una carpeta. Descubrir y ubicarse es directo.
+- **Independiente.** Cambiar `transfer` no rompe `movement`, porque no comparten un servicio genérico. Y para estimar el impacto de un cambio te basta, casi siempre, con mirar **una** carpeta, no todo el proyecto.
+- **Código más simple.** Como cada servicio atiende **un** caso de uso, no necesita `if` ni genéricos para cubrir a otros. Se lee y se cambia más fácil.
+- **Más fácil de testear.** Una clase de una feature tiene menos dependencias que una clase-dios que intenta con todo; montar el test cuesta menos.
+
+!!! abstract "La regla de oro"
+    *Si quisieras borrar una feature, deberías poder borrar solo su carpeta.* Si borrar `notification` te obliga a tocar diez archivos regados por todo el proyecto, es que no estaba bien encapsulada.
+
+!!! note "¿Y lo compartido?"
+    Siempre hay algo compartido —configuración técnica, el manejo de errores global—. Eso va aparte (`web/exception` en la wallet). Pero ojo: **no muevas código ahí "por si acaso"**. Empieza pegando todo a su feature, y solo sube algo a lo compartido cuando de verdad se repite (la [regla de tres](https://en.wikipedia.org/wiki/Rule_of_three_%28computer_programming%29): a la tercera vez, recién ahí lo abstraes).
+
+### El principio detrás: KISS antes que DRY
+
+Este enfoque a veces te hace **escribir código parecido dos veces** (un DTO por feature, aunque se parezcan), y está bien. La duplicación controlada sale más barata que una abstracción equivocada que amarra dos features que en realidad evolucionan distinto. Otra de Sandi Metz: *"prefiere la duplicación antes que la abstracción equivocada"*. Y Kotlin lo hace barato: con una `data class`, un DTO o una entidad a la medida son **una línea**, sin boilerplate.
+
 ## Ubícate: la rama y el proyecto
 
 El **código** vive en un repo aparte de esta guía: [`github.com/geovannymcode/wallet`](https://github.com/geovannymcode/wallet). Para tener esa wallet REST completa sin escribirla, ponte en el estado exacto en el que quedó la Fase 4:
