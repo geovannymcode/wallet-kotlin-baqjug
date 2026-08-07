@@ -1,43 +1,45 @@
 # Una wallet en Kotlin, de un endpoint REST a eventos
 
-Esta guía construye desde cero una billetera digital en Kotlin y Spring Boot. Empezamos con un endpoint REST que mueve plata entre dos cuentas contra una base Postgres, y terminamos con ese mismo movimiento viajando como un evento que otro servicio consume. Se puede seguir sola, de principio a fin.
+Esta guía construye desde cero una billetera digital en Kotlin y Spring Boot. El problema es engañosamente simple: mover plata de una cuenta a otra **sin perder ni duplicar un peso**, validando que haya saldo y dejando registro de cada movimiento. Suena trivial; no lo es. Lo resolvemos primero con un endpoint REST directo contra Postgres —esa es la base, y es donde ponemos el grueso del trabajo— y más adelante ese mismo movimiento viaja como un evento que otros servicios consumen. Se puede seguir sola, de principio a fin.
 
 Si nunca tocaste Kotlin, tranquilo: vamos explicando cada cosa del lenguaje la primera vez que aparece. Si vienes de Kotlin pero nunca hiciste Spring, igual: cada anotación y cada pieza de infraestructura se explica cuando entra en juego. No asumo que porque lees una cosa ya sabes la otra.
 
 !!! note "Esto no es un 'hola mundo'"
-    Aunque explicamos todo desde la base, lo que construimos tiene sustancia: dinero con `BigDecimal`, una transferencia transaccional que no puede dejar saldos rotos, y un desacople real por mensajería. Los conceptos difíciles no se esconden, se explican.
+    Aunque explicamos todo desde la base, lo que construimos tiene sustancia: dinero con `BigDecimal`, una transferencia transaccional que no puede dejar saldos rotos, y una arquitectura limpia organizada por features. Los conceptos difíciles no se esconden, se explican.
 
-## Qué vamos a construir
+## El problema
 
-Una wallet, **`wallet`**, con tres cosas que hace cualquier billetera:
+Una billetera tiene que hacer tres cosas, y las tres bien:
 
-- Consultar el saldo de una cuenta.
-- Transferir plata de una cuenta a otra, validando que haya saldo.
-- Dejar registrado cada movimiento.
+- **Consultar el saldo** de una cuenta.
+- **Transferir plata** de una cuenta a otra, rechazando la operación si no hay fondos.
+- **Registrar cada movimiento**, para que nada quede sin rastro.
 
-A vista de pájaro, la wallet es simple: unos clientes entran por HTTP a una aplicación, y esa aplicación lee y escribe en una base Postgres. La arquitectura la ves en detalle en la [Fase 0](fase-00-arranque.md); acá basta la idea. Toda la magia pasa dentro de esa aplicación, y adentro, el registro de cada movimiento arranca de la forma más simple posible: una llamada directa dentro del mismo proceso.
+Lo delicado no es el "qué", es el "cómo". Una transferencia no puede quedar a medias —la cuenta de origen debitada y la de destino sin acreditar—, y el dinero no admite errores de redondeo. Todo lo que construimos de la Fase 0 a la 4 gira alrededor de resolver eso bien: una wallet que mueve plata de verdad, por REST, contra una base real.
+
+A vista de pájaro es simple: unos clientes entran por HTTP a una aplicación, y esa aplicación lee y escribe en una base Postgres. La forma completa la ves en la [Fase 0](fase-00-arranque.md).
 
 ![Resumen del flujo síncrono: la petición REST entra a transfer, que valida y mueve el saldo en account, y registra el movimiento en movement con una llamada directa dentro del mismo proceso](img/Img_9.png)
 
-En la parte de eventos, el registro deja de ser una llamada directa y pasa a publicarse:
+## Por qué este stack (y no otro)
+
+Cada pieza responde a un requisito del problema, no a la moda:
+
+- **Kotlin** — expresivo y seguro: `data class` para objetos de datos en una línea, null-safety para que los nulos no exploten en tiempo de ejecución, y `sealed class` para modelar con exactitud los desenlaces de una operación. Menos código que Java para lo mismo.
+- **Spring Boot** — servidor web, acceso a datos e inyección de dependencias sin configurar medio mundo. Te concentras en la lógica; Boot cablea lo aburrido.
+- **PostgreSQL (Supabase)** — una base **relacional con transacciones ACID**, porque una transferencia es todo-o-nada. ¿Por qué no una NoSQL? Porque acá el corazón es la **consistencia sobre dinero**: una relacional te la da de frente, mientras que en una documental tendrías que inventar la transaccionalidad a mano.
+- **`BigDecimal` con `NUMERIC`** — dinero exacto. Nada de `Double`, que redondea mal y en un saldo eso es un desastre.
+- **Flyway** — el esquema de la base versionado en el repo, reproducible en cualquier máquina.
+
+El "por qué" completo, requisito por requisito, está en la [Fase 0](fase-00-arranque.md).
+
+## Y más adelante: desacoplar con eventos
+
+Cuando la wallet crece, a cada transferencia le empiezan a colgar cosas: manda un correo, dispara un push, avisa a antifraude, refresca métricas. Hacerlo todo con llamadas directas termina en un `transfer` que conoce a media empresa y que se cae si se cae el correo. La mensajería por eventos corta ese nudo: `transfer` publica un hecho, "se registró un movimiento", y se desentiende; cada interesado reacciona por su cuenta.
 
 ![Resumen del flujo por eventos: transfer mueve el saldo en account y publica el evento MovimientoRegistrado en Redpanda, que notification consume y notifica](img/Img_10.png)
 
-El cambio se ve chico en el diagrama, pero es el corazón de la segunda parte: `transfer` deja de saber quién registra o notifica. Solo suelta un evento. Quién lo escuche, y cuántos lo escuchen, ya no es su problema.
-
-## El problema que motiva la parte de eventos
-
-Arranca simple: una transferencia mueve plata y registra el movimiento. Pero el negocio nunca se queda quieto. A los tres meses, cada vez que ocurre una transferencia te piden algo más: manda un correo al que recibió, dispara un push, avísale a antifraude, suma puntos de fidelidad, refresca el tablero de métricas. Seis cosas, y contando.
-
-Si todas cuelgan de `transfer` con una llamada directa, pasan tres cosas, y las tres son malas:
-
-- `transfer` se vuelve un **monstruo que conoce a media empresa**: importa el servicio de correo, el de push, el de antifraude, y cada feature nueva es editar este método y volver a desplegarlo, aunque la lógica de mover plata no cambió en nada.
-- Se **amarra el destino de todos**: si el servicio de correo está lento, la transferencia se pone lenta; si se cae, la transferencia se cae **con él**. El cliente no puede mover su plata porque un correo no salió. Absurdo, pero es lo que pasa cuando todo va en la misma llamada.
-- El que llega tarde **arriesga lo que ya servía**: meter antifraude te obliga a tocar —y poner en riesgo— el código que ya movía plata bien.
-
-La mensajería por eventos corta ese nudo de raíz. `transfer` hace lo suyo, mover la plata, y publica un hecho: *"se registró un movimiento"*. Ahí termina su responsabilidad. Quién quiera enterarse se suscribe y reacciona por su cuenta —el correo, el push, antifraude—, cada uno en su proceso, cayéndose y levantándose sin arrastrar a nadie. Y lo mejor: agregar un consumidor nuevo **no toca `transfer`**: ni lo editas, ni lo redespliegas, ni lo arriesgas.
-
-Eso es lo que vas a construir con tus manos de la Fase 5 en adelante: pasar de una llamada directa y frágil a un hecho publicado que desacopla toda la cadena.
+Eso —y cómo endurecerlo para producción, las coroutines y el despliegue— lo construyes **de la Fase 5 en adelante**. Si por ahora vienes por la parte REST, con las Fases 0 a 4 ya tienes una wallet completa y redonda.
 
 ## Cómo está organizada
 
@@ -59,9 +61,6 @@ Cada fase es una etapa y, en el repo, una rama. Puedes hacer `git checkout` a cu
 
 !!! tip "Puedes entrar por cualquier fase"
     Cada rama deja el proyecto justo en el estado de esa fase. Si te perdiste en un paso, `git checkout fase-2` y sigues desde ahí sin quedarte atrás. Y si lo que te interesa es directamente la parte de eventos, `git checkout fase-4` te pone en la línea de salida con toda la base REST ya lista. La rama `main` es la versión final con eventos.
-
-!!! note "El corazón y las extensiones"
-    Las Fases 0 a 7 son el hilo principal: de un endpoint REST a eventos, con una wallet completa al final. La 8 es referencia (lo que falta para producción: outbox, idempotencia, DLQ), la 9 es un extra avanzado y opcional (coroutines), y la 10 lleva la app a la nube (Docker, integración continua y despliegue). Puedes parar en la 7 y ya tienes algo redondo, o seguir hasta donde quieras.
 
 ## Versiones
 
