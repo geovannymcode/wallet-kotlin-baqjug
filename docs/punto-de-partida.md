@@ -32,10 +32,26 @@ val id = UUID.randomUUID()      // fijo, nunca cambia
 var balance = BigDecimal.ZERO   // cambia: el saldo sube y baja
 ```
 
+**`fun` — funciones.** Se declaran con `fun`; el tipo va después del nombre (`id: UUID`) y el de retorno después de los paréntesis. Si el cuerpo es una sola expresión, va con `=` en vez de llaves.
+
+```kotlin
+fun doble(x: Int): Int = x * 2
+```
+
 **`class` y el constructor en una línea.** En Kotlin declaras la clase y su constructor juntos. Cada parámetro con `val`/`var` es además una propiedad de la clase. Nada de getters/setters ni de `this.x = x`.
 
 ```kotlin
 class AccountEntity(val owner: String, var balance: BigDecimal)
+```
+
+**`object` y `companion object` — singleton y "lo estático".** `object` declara un **singleton**: una única instancia, sin crearla con `new`. Lo usamos para el mapper (no guarda estado, solo transforma). `companion object` guarda lo que pertenece a la **clase** y no a cada instancia (como las `static` de Java): constantes, factories.
+
+```kotlin
+object AccountMapper { /* fun toResponse(...) */ }              // singleton
+
+class MovimientoPublisher(/* ... */) {
+    companion object { const val TOPIC = "wallet.movements" }   // constante de la clase
+}
 ```
 
 **`data class` — una clase para llevar datos.** Kotlin te genera gratis `equals`, `hashCode`, `toString` y `copy`. En una línea tienes un objeto con sus campos; en Java serían 40 líneas.
@@ -50,6 +66,12 @@ data class AccountResponse(val id: UUID, val owner: String, val balance: BigDeci
 interface AccountRepository : JpaRepository<AccountEntity, UUID>
 ```
 
+**`enum class` — una lista fija de opciones.** Un `enum` es un conjunto cerrado de constantes con nombre. Se parece a la `sealed class`, con una diferencia clave: en un `enum` los casos **no llevan datos propios**; en una `sealed class` cada caso puede cargar lo suyo. Regla: opciones fijas y sin datos → `enum`; finales que cargan información → `sealed` (lo que sigue).
+
+```kotlin
+enum class EstadoCuenta { ACTIVA, BLOQUEADA, CERRADA }
+```
+
 **`sealed class` — una jerarquía cerrada.** Un conjunto **cerrado** de subclases: el compilador las conoce todas. Modela los finales posibles de una operación, y en un `when` te obliga a cubrir todos los casos (si falta uno, **no compila**). Es un `enum` con esteroides: cada caso puede llevar sus propios datos.
 
 ```kotlin
@@ -60,13 +82,19 @@ sealed class MoveResult {
 }
 ```
 
-**Y dos que verás seguido:**
+**Y unas cuantas que verás seguido:**
 
+- **Lambdas**: funciones cortas sin nombre, entre `{ }`. Cuando la lambda es el último argumento, sale del paréntesis: `orElseThrow { ... }`, `require(...) { ... }`, `apply { ... }`.
 - **Null-safety**: un tipo con `?` (`String?`) puede ser nulo; sin `?`, nunca lo es. El operador Elvis `?:` da un valor por defecto si algo viene nulo.
 - **`when`**: como un `switch`, pero de verdad; sobre una `sealed class` te obliga a cubrir todos los casos.
+- **Funciones de scope** (`apply`, `let`, `also`): ejecutan un bloque sobre un objeto para configurarlo o encadenar — `SimpleMailMessage().apply { subject = "..." }`.
+- **Genéricos** (`<...>`): tipos parametrizados, como `List<Cuenta>` o `JpaRepository<AccountEntity, UUID>` ("un repositorio de `AccountEntity` con id `UUID`").
 
 !!! note "Y en Spring, las anotaciones"
     Verás `@Service` (un bean de lógica), `@RestController` (atiende HTTP y devuelve JSON), `@Entity` (una clase que se guarda en una tabla) y `@Transactional` (envuelve el método en una transacción). Cada una se explica cuando aparece; por ahora quédate con que **le dicen a Spring qué papel juega cada clase**.
+
+!!! tip "Con esto sigues el taller sin frenar"
+    Kotlin tiene más (genéricos avanzados, delegación de clases, extensiones, corrutinas…), pero con lo de arriba entiendes todo el código de la wallet. Lo demás se explica cuando aparece, no necesitas saberlo de memoria.
 
 ## Cómo está organizado el código: *package by feature*
 
