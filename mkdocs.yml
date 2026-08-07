@@ -44,6 +44,7 @@ nav:
       - "Fase 2 · Exponer el saldo por REST": fase-02-rest.md
       - "Fase 3 · Transferencias con validación": fase-03-transferencia.md
       - "Fase 4 · Registro de movimientos": fase-04-movimientos.md
+      - "Punto de partida · Antes de la Fase 5": punto-de-partida.md
       - "Fase 5 · Por qué eventos": fase-05-por-que-eventos.md
       - "Fase 6 · Publicar el evento (Redpanda)": fase-06-publicar-evento.md
       - "Fase 7 · Consumir el evento": fase-07-consumir-evento.md
