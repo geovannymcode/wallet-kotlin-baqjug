@@ -1,6 +1,6 @@
 # Punto de partida
 
-**Bienvenido.** Vas a construir la parte más jugosa de una wallet: la que desacopla el sistema con **eventos**. Pero antes de escribir la primera línea, necesitas dos cosas para no perderte: **entender qué se construyó antes** —para que nada te suene a magia— y **tener el proyecto corriendo en tu máquina**. Esta página te da las dos, más un repaso rápido del Kotlin que vamos a usar. Cinco minutos aquí, y arrancamos todos parejos: sepas o no sepas Kotlin.
+**Bienvenido.** Vas a construir la parte más jugosa de una wallet: la que desacopla el sistema con **eventos**. Pero antes de escribir la primera línea, necesitas dos cosas para no perderte: **entender qué se construyó antes** para que nada te suene a magia y **tener el proyecto corriendo en tu máquina**. Esta página te da las dos, más un repaso rápido del Kotlin que vamos a usar. Cinco minutos aquí, y arrancamos todos parejos: sepas o no sepas Kotlin.
 
 ## Qué se construyó de la Fase 0 a la 4
 
@@ -13,7 +13,7 @@ Antes de los eventos, las primeras fases levantan una **wallet REST completa y f
 Todo sobre Kotlin + Spring Boot, con arquitectura **por features** (Tomato: `domain`/`web`, servicios concretos, un mapper entre la entidad y el DTO), Postgres gestionado en Supabase y el esquema versionado con Flyway. Es una wallet que mueve plata de verdad, síncrona, contra una base real.
 
 !!! abstract "La pieza clave para lo que viene"
-    En la Fase 4, `transfer` registra el movimiento con una **llamada directa** a `movement`. Esa costura —esa llamada síncrona y acoplada— es justo lo que la parte de eventos va a cortar. Guárdala en la cabeza: es el "antes" de toda la segunda mitad.
+    En la Fase 4, `transfer` registra el movimiento con una **llamada directa** a `movement`. Esa costura esa llamada síncrona y acoplada, es justo lo que la parte de eventos va a cortar. Guárdala en la cabeza: es el "antes" de toda la segunda mitad.
 
 ## Por qué arrancamos aquí
 
@@ -25,14 +25,14 @@ Y algo importante: aquí va a haber gente que **nunca ha tocado Kotlin**, y est�
 
 Un repaso exprés de las piezas del lenguaje que salieron de la Fase 0 a la 4 y que vas a seguir viendo. Si ya sabes Kotlin, sáltalo; si no, léelo con calma, es corto.
 
-**`val` y `var` — inmutable vs. mutable.** `val` es un valor que **no cambia** después de asignarlo (como `final` en Java); `var` sí cambia. En la wallet, el `id` y el dueño de una cuenta son `val` (fijos); el saldo es `var` (sube y baja).
+**`val` y `var` - inmutable vs. mutable.** `val` es un valor que **no cambia** después de asignarlo (como `final` en Java); `var` sí cambia. En la wallet, el `id` y el dueño de una cuenta son `val` (fijos); el saldo es `var` (sube y baja).
 
 ```kotlin
 val id = UUID.randomUUID()      // fijo, nunca cambia
 var balance = BigDecimal.ZERO   // cambia: el saldo sube y baja
 ```
 
-**`fun` — funciones.** Se declaran con `fun`; el tipo va después del nombre (`id: UUID`) y el de retorno después de los paréntesis. Si el cuerpo es una sola expresión, va con `=` en vez de llaves.
+**`fun` funciones.** Se declaran con `fun`; el tipo va después del nombre (`id: UUID`) y el de retorno después de los paréntesis. Si el cuerpo es una sola expresión, va con `=` en vez de llaves.
 
 ```kotlin
 fun doble(x: Int): Int = x * 2
@@ -44,7 +44,7 @@ fun doble(x: Int): Int = x * 2
 class AccountEntity(val owner: String, var balance: BigDecimal)
 ```
 
-**`object` y `companion object` — singleton y "lo estático".** `object` declara un **singleton**: una única instancia, sin crearla con `new`. Lo usamos para el mapper (no guarda estado, solo transforma). `companion object` guarda lo que pertenece a la **clase** y no a cada instancia (como las `static` de Java): constantes, factories.
+**`object` y `companion object` singleton y "lo estático".** `object` declara un **singleton**: una única instancia, sin crearla con `new`. Lo usamos para el mapper (no guarda estado, solo transforma). `companion object` guarda lo que pertenece a la **clase** y no a cada instancia (como las `static` de Java): constantes, factories.
 
 ```kotlin
 object AccountMapper { /* fun toResponse(...) */ }              // singleton
@@ -54,25 +54,25 @@ class MovimientoPublisher(/* ... */) {
 }
 ```
 
-**`data class` — una clase para llevar datos.** Kotlin te genera gratis `equals`, `hashCode`, `toString` y `copy`. En una línea tienes un objeto con sus campos; en Java serían 40 líneas.
+**`data class` una clase para llevar datos.** Kotlin te genera gratis `equals`, `hashCode`, `toString` y `copy`. En una línea tienes un objeto con sus campos; en Java serían 40 líneas.
 
 ```kotlin
 data class AccountResponse(val id: UUID, val owner: String, val balance: BigDecimal)
 ```
 
-**`interface` — un contrato.** Dice **qué** operaciones existen, no **cómo**. En la wallet, los repositorios son interfaces y Spring Data las implementa por ti.
+**`interface` un contrato.** Dice **qué** operaciones existen, no **cómo**. En la wallet, los repositorios son interfaces y Spring Data las implementa por ti.
 
 ```kotlin
 interface AccountRepository : JpaRepository<AccountEntity, UUID>
 ```
 
-**`enum class` — una lista fija de opciones.** Un `enum` es un conjunto cerrado de constantes con nombre. Se parece a la `sealed class`, con una diferencia clave: en un `enum` los casos **no llevan datos propios**; en una `sealed class` cada caso puede cargar lo suyo. Regla: opciones fijas y sin datos → `enum`; finales que cargan información → `sealed` (lo que sigue).
+**`enum class` una lista fija de opciones.** Un `enum` es un conjunto cerrado de constantes con nombre. Se parece a la `sealed class`, con una diferencia clave: en un `enum` los casos **no llevan datos propios**; en una `sealed class` cada caso puede cargar lo suyo. Regla: opciones fijas y sin datos → `enum`; finales que cargan información → `sealed` (lo que sigue).
 
 ```kotlin
 enum class EstadoCuenta { ACTIVA, BLOQUEADA, CERRADA }
 ```
 
-**`sealed class` — una jerarquía cerrada.** Un conjunto **cerrado** de subclases: el compilador las conoce todas. Modela los finales posibles de una operación, y en un `when` te obliga a cubrir todos los casos (si falta uno, **no compila**). Es un `enum` con esteroides: cada caso puede llevar sus propios datos.
+**`sealed class` una jerarquía cerrada.** Un conjunto **cerrado** de subclases: el compilador las conoce todas. Modela los finales posibles de una operación, y en un `when` te obliga a cubrir todos los casos (si falta uno, **no compila**). Es un `enum` con esteroides: cada caso puede llevar sus propios datos.
 
 ```kotlin
 sealed class MoveResult {
@@ -87,7 +87,7 @@ sealed class MoveResult {
 - **Lambdas**: funciones cortas sin nombre, entre `{ }`. Cuando la lambda es el último argumento, sale del paréntesis: `orElseThrow { ... }`, `require(...) { ... }`, `apply { ... }`.
 - **Null-safety**: un tipo con `?` (`String?`) puede ser nulo; sin `?`, nunca lo es. El operador Elvis `?:` da un valor por defecto si algo viene nulo.
 - **`when`**: como un `switch`, pero de verdad; sobre una `sealed class` te obliga a cubrir todos los casos.
-- **Funciones de scope** (`apply`, `let`, `also`): ejecutan un bloque sobre un objeto para configurarlo o encadenar — `SimpleMailMessage().apply { subject = "..." }`.
+- **Funciones de scope** (`apply`, `let`, `also`): ejecutan un bloque sobre un objeto para configurarlo o encadenar `SimpleMailMessage().apply { subject = "..." }`.
 - **Genéricos** (`<...>`): tipos parametrizados, como `List<Cuenta>` o `JpaRepository<AccountEntity, UUID>` ("un repositorio de `AccountEntity` con id `UUID`").
 
 !!! note "Y en Spring, las anotaciones"
@@ -144,7 +144,7 @@ Cada feature (`account`, `transfer`, `movement`, `notification`) es **autoconten
     *Si quisieras borrar una feature, deberías poder borrar solo su carpeta.* Si borrar `notification` te obliga a tocar diez archivos regados por todo el proyecto, es que no estaba bien encapsulada.
 
 !!! note "¿Y lo compartido?"
-    Siempre hay algo compartido —configuración técnica, el manejo de errores global—. Eso va aparte (`web/exception` en la wallet). Pero ojo: **no muevas código ahí "por si acaso"**. Empieza pegando todo a su feature, y solo sube algo a lo compartido cuando de verdad se repite (la [regla de tres](https://en.wikipedia.org/wiki/Rule_of_three_%28computer_programming%29): a la tercera vez, recién ahí lo abstraes).
+    Siempre hay algo compartido *configuración técnica, el manejo de errores global*. Eso va aparte (`web/exception` en la wallet). Pero ojo: **no muevas código ahí "por si acaso"**. Empieza pegando todo a su feature, y solo sube algo a lo compartido cuando de verdad se repite (la [regla de tres](https://en.wikipedia.org/wiki/Rule_of_three_%28computer_programming%29): a la tercera vez, recién ahí lo abstraes).
 
 ### El principio detrás: KISS antes que DRY
 
@@ -166,7 +166,7 @@ git checkout fase-4
 Configura las variables de entorno de Supabase (las de [Requisitos y setup](requisitos.md)) y levanta la app desde IntelliJ. Deberías ver a Flyway aplicar las migraciones y la app quedar escuchando.
 
 !!! tip "Por qué en esta rama y no en `main`"
-    Cada fase del taller es una rama. `fase-4` deja el proyecto justo con la wallet REST terminada —entidad, transferencia transaccional, registro de movimientos y tests— **sin** la parte de eventos encima. Es la **línea de salida** limpia para lo que vamos a construir. Si te pierdes en cualquier momento, vuelves a `git checkout fase-4` y arrancas de nuevo desde un estado conocido.
+    Cada fase del taller es una rama. `fase-4` deja el proyecto justo con la wallet REST terminada entidad, transferencia transaccional, registro de movimientos y tests **sin** la parte de eventos encima. Es la **línea de salida** limpia para lo que vamos a construir. Si te pierdes en cualquier momento, vuelves a `git checkout fase-4` y arrancas de nuevo desde un estado conocido.
 
 ## Verifica que la base corre
 
