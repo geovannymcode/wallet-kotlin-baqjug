@@ -10,8 +10,10 @@
 Agrega Spring for Apache Kafka al `build.gradle.kts`:
 
 ```kotlin title="build.gradle.kts (dependencies)"
-implementation("org.springframework.kafka:spring-kafka")
+implementation("org.springframework.boot:spring-boot-starter-kafka")
+implementation("com.fasterxml.jackson.core:jackson-databind")
 ```
+    
 
 !!! note "Kafka y Redpanda hablan el mismo idioma"
     Usamos la librería de Kafka de Spring aunque el broker sea Redpanda. Redpanda implementa el protocolo de Kafka, así que del lado del código no cambia nada: la misma librería, las mismas anotaciones. Solo cambian las propiedades de conexión.
