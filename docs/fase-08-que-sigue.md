@@ -32,7 +32,62 @@ CREATE TABLE outbox (
 );
 ```
 
-En vez de publicar, `transfer` guarda la fila en la misma transacción del movimiento. Fíjate que ahora el método sí es `@Transactional`, y adentro pasan las dos cosas juntas:
+Primero, la fila `outbox` es una **entidad JPA** como cualquier otra. Va en `transfer/messaging` (es plomería de mensajería, no lógica de negocio):
+
+```kotlin title="transfer/messaging/OutboxEvent.kt"
+package com.baqjug.wallet.transfer.messaging
+
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
+import jakarta.persistence.Table
+import java.time.Instant
+import java.util.UUID
+
+@Entity
+@Table(name = "outbox")
+class OutboxEvent(
+    @Column(nullable = false)
+    val topic: String,
+
+    @Column(name = "msg_key", nullable = false)
+    val msgKey: String,
+
+    @Column(nullable = false)
+    val payload: String,
+
+    @Column(name = "sent_at")
+    var sentAt: Instant? = null,
+
+    @Column(name = "created_at", nullable = false)
+    val createdAt: Instant = Instant.now(),
+
+    @Id
+    val id: UUID = UUID.randomUUID()
+)
+```
+
+Y su repositorio, con una consulta que trae solo lo que **falta por enviar**:
+
+```kotlin title="transfer/messaging/OutboxRepository.kt"
+package com.baqjug.wallet.transfer.messaging
+
+import org.springframework.data.jpa.repository.JpaRepository
+import java.util.UUID
+
+interface OutboxRepository : JpaRepository<OutboxEvent, UUID> {
+    fun findBySentAtIsNullOrderByCreatedAt(): List<OutboxEvent>
+}
+```
+
+!!! abstract "Spring al paso: la consulta sale del nombre del método"
+    `findBySentAtIsNullOrderByCreatedAt()` no la implementas: Spring Data la genera a partir del **nombre**. Léelo como frase: "los que tienen `sentAt` en null, ordenados por `createdAt`" — o sea, lo pendiente de publicar, del más viejo al más nuevo.
+
+Ahora sí, mira **qué cambió** en `transfer` respecto a la Fase 6, y por qué:
+
+- **Antes** (Fase 6), en la rama `Success`, `transfer` publicaba directo al broker: `publisher.publish(evento)`. Dos sistemas —base y broker— sin una transacción que los cubra a ambos.
+- **Ahora**, en vez de publicar, **guarda una fila en la tabla `outbox`** dentro de la **misma transacción** que mueve la plata. Por eso el método es `@Transactional`: mover el saldo y escribir el outbox se confirman **juntos** (o se deshacen juntos). Así el evento no se puede perder: si la transferencia quedó guardada, su fila de outbox también.
+- El evento se guarda como **texto JSON** con `mapper.writeValueAsString(evento)`, porque la columna `payload` es `TEXT`. Ese `mapper` es el `ObjectMapper` de Jackson, que Spring Boot ya te da listo: solo lo inyectas en el constructor.
 
 ```kotlin title="transfer/domain/TransferService.kt (con outbox)"
 @Service
@@ -169,6 +224,36 @@ class KafkaErrorConfig {
 
 !!! abstract "Spring al paso: cómo entra este bean solo"
     Spring Boot detecta que declaraste un `DefaultErrorHandler` y se lo conecta a los `@KafkaListener` sin que hagas nada más. A partir de ahí, cualquier excepción en un listener pasa por esta política: reintenta con el backoff, y al agotarse manda el evento al `.DLT`. Después conectas otro consumidor a ese `.DLT` para alertar o inspeccionar.
+
+### Cómo verlo en una demo (sin Slack)
+
+Para mostrar la DLQ en vivo tienes dos caminos, y ninguno necesita Slack ni infraestructura pesada:
+
+- **El más simple, en la consola**: un `@KafkaListener` extra suscrito al `.DLT` que solo **loguea** lo que llega. Mandas un evento "envenenado" (un JSON corrupto o un dato imposible que haga fallar al consumidor de `movement`), se agotan los reintentos, y ves el mensaje muerto aparecer en la consola.
+- **El más visual, sin código extra**: como ya usas **Redpanda**, ábrete su panel — al lado de `wallet.movements` va a aparecer el topic **`wallet.movements.DLT`** llenándose con los que fallaron. Señalas ahí y se explica solo. (Si corres el broker local con Docker, una UI como **Redpanda Console**, **AKHQ** o **Kafdrop** hace lo mismo en el navegador.)
+
+El listener de demo:
+
+```kotlin title="notification/messaging/DeadLetterListener.kt (solo para la demo)"
+package com.baqjug.wallet.notification.messaging
+
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.slf4j.LoggerFactory
+import org.springframework.kafka.annotation.KafkaListener
+import org.springframework.stereotype.Component
+
+@Component
+class DeadLetterListener {
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    @KafkaListener(topics = ["wallet.movements.DLT"], groupId = "dlt-demo")
+    fun onDead(record: ConsumerRecord<String, String>) {
+        log.warn("💀 Mensaje muerto en el DLT: key={} value={}", record.key(), record.value())
+    }
+}
+```
+
+El guion de la demo: mandas el evento envenenado, el consumidor de `movement` falla 3 veces (el `FixedBackOff`), y el evento aparece en `wallet.movements.DLT` —en tu consola por el `DeadLetterListener`, o en el panel de Redpanda—. Eso es justo lo que quieres mostrar: un mensaje malo no tranca la cola, se aparta y los demás siguen.
 
 ---
 
