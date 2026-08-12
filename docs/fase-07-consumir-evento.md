@@ -5,6 +5,27 @@
 
 ---
 
+## Las dependencias
+
+Antes de escribir el consumidor, el `build.gradle.kts` necesita cuatro dependencias. Sin ellas esto **no arranca**, y algunos de los errores son de los que cuesta descifrar:
+
+```kotlin title="build.gradle.kts (dependencies)"
+implementation("org.springframework.boot:spring-boot-starter-kafka")
+implementation("com.fasterxml.jackson.core:jackson-databind")
+implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+implementation("org.springframework.boot:spring-boot-starter-mail")
+```
+
+Qué hace cada una:
+
+- **`spring-boot-starter-kafka`** — el cliente de Kafka (productor y consumidor). Es lo que hace que `@KafkaListener` exista y que la app se conecte al broker. Sin esto no hay quién escuche el evento.
+- **`jackson-databind`** — el motor de Jackson que convierte objetos Kotlin ↔ JSON. El evento viaja como JSON por el broker; Jackson lo arma y lo desarma.
+- **`jackson-datatype-jsr310`** — el módulo de Jackson para los **tipos de fecha/hora de Java 8+** (`Instant`, `LocalDateTime`, etc.). Nuestro evento `MovimientoRegistrado` lleva un `occurredAt: Instant`, y **sin este módulo Jackson no sabe leer ni escribir ese `Instant`**: la deserialización falla y el consumidor no procesa nada.
+- **`spring-boot-starter-mail`** — el `JavaMailSender` para mandar el correo (lo usamos con Mailpit, más abajo).
+
+!!! danger "El que más duele: `jackson-datatype-jsr310`"
+    Es fácil tener las otras tres y aun así fallar, porque el error de fechas no dice "te falta jsr310": suele venir disfrazado (`InvalidDefinitionException`, un "no serializer/deserializer for Instant" o parecido). Con este módulo en el classpath, Spring Boot lo registra solo y el `Instant` viaja sin drama. Si ves un error raro de Jackson con fechas, empieza por acá.
+
 ## Parte 1 — Configurar el consumidor
 
 Súmale al `application.yaml` el lado consumidor. El productor mandaba JSON; el consumidor lo reconstruye.
@@ -41,13 +62,7 @@ docker run -d --name mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit
 
 El puerto `1025` es el SMTP (por ahí le entrega tu app); el `8025` es la UI web, en `http://localhost:8025`, donde ves los correos.
 
-Agrega la dependencia de correo de Spring:
-
-```kotlin title="build.gradle.kts (dependencies)"
-implementation("org.springframework.boot:spring-boot-starter-mail")
-```
-
-Y la configuración del correo, con valores por variable de entorno para poder cambiarlos en producción sin tocar el código:
+La dependencia `spring-boot-starter-mail` ya la sumaste arriba. Ahora, la configuración del correo, con valores por variable de entorno para poder cambiarlos en producción sin tocar el código:
 
 ```yaml title="src/main/resources/application.yaml (correo)"
 spring:
