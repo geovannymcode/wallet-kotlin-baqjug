@@ -87,7 +87,7 @@ Ahora sí, mira **qué cambió** en `transfer` respecto a la Fase 6, y por qué:
 
 - **Antes** (Fase 6), en la rama `Success`, `transfer` publicaba directo al broker: `publisher.publish(evento)`. Dos sistemas —base y broker— sin una transacción que los cubra a ambos.
 - **Ahora**, en vez de publicar, **guarda una fila en la tabla `outbox`** dentro de la **misma transacción** que mueve la plata. Por eso el método es `@Transactional`: mover el saldo y escribir el outbox se confirman **juntos** (o se deshacen juntos). Así el evento no se puede perder: si la transferencia quedó guardada, su fila de outbox también.
-- El evento se guarda como **texto JSON** con `mapper.writeValueAsString(evento)`, porque la columna `payload` es `TEXT`. Ese `mapper` es el `ObjectMapper` de Jackson, que Spring Boot ya te da listo: solo lo inyectas en el constructor.
+- El evento se guarda como **texto JSON** con `mapper.writeValueAsString(evento)`, porque la columna `payload` es `TEXT`. Ese `mapper` es un `ObjectMapper` de Jackson que inyectas en el constructor. Un detalle de versiones que importa: en Spring Boot 4 (que trae Jackson 3), el `ObjectMapper` **clásico** de Jackson 2 —el que necesitan tanto este outbox como el `JsonSerializer` de spring-kafka— **no viene autoconfigurado**, así que lo declaras tú como bean. Lo dejamos junto a la configuración de Kafka, más abajo.
 
 ```kotlin title="transfer/domain/TransferService.kt (con outbox)"
 @Service
@@ -267,8 +267,17 @@ class MovimientoPersistenceListener(
 Spring for Kafka lo hace con un bean. Reintenta unas cuantas veces y, si sigue fallando, publica el evento al `.DLT`:
 
 ```kotlin title="config/KafkaErrorConfig.kt"
+import com.fasterxml.jackson.databind.ObjectMapper
+// ...demás imports
+
 @Configuration
 class KafkaErrorConfig {
+
+    // Spring Boot 4 (Jackson 3) no autoconfigura este ObjectMapper clásico (Jackson 2);
+    // lo necesitan el payload del outbox (TransferService) y el JsonSerializer de
+    // spring-kafka, que aún usan Jackson 2.
+    @Bean
+    fun objectMapper(): ObjectMapper = ObjectMapper().findAndRegisterModules()
 
     @Bean
     fun errorHandler(kafkaTemplate: KafkaTemplate<Any, Any>): DefaultErrorHandler {
@@ -280,6 +289,9 @@ class KafkaErrorConfig {
     }
 }
 ```
+
+!!! abstract "Spring al paso: por qué declaras tú el `ObjectMapper`"
+    En Spring Boot 4 la autoconfiguración de Jackson pasó a **Jackson 3**. Pero el `ObjectMapper` de `com.fasterxml.jackson.databind` (Jackson **2**) —el que usan el outbox y el `JsonSerializer`/`JsonDeserializer` de spring-kafka— ya no queda registrado solo. Al declararlo como bean, Spring lo inyecta donde se pida (por ejemplo, en el constructor del `TransferService`). `findAndRegisterModules()` engancha los módulos que tengas en el classpath, entre ellos el `jackson-datatype-jsr310` de la Fase 7 —así el `Instant` del evento se serializa bien—.
 
 !!! abstract "Spring al paso: cómo entra este bean solo"
     Spring Boot detecta que declaraste un `DefaultErrorHandler` y se lo conecta a los `@KafkaListener` sin que hagas nada más. A partir de ahí, cualquier excepción en un listener pasa por esta política: reintenta con el backoff, y al agotarse manda el evento al `.DLT`. Después conectas otro consumidor a ese `.DLT` para alertar o inspeccionar.
