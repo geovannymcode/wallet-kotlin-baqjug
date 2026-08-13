@@ -350,11 +350,71 @@ Content-Type: application/json
 GET http://localhost:8080/api/accounts/22222222-2222-2222-2222-222222222222
 ```
 
-Qué mirar en cada escenario:
+### Verificar en la base de datos
 
-- **Outbox:** después del `POST /api/transfers`, mira la tabla `outbox` en Supabase — ves la fila aparecer y, un par de segundos después, su `sent_at` llenarse (el relay ya la publicó). En `movements` aparece la fila y en Mailpit el correo.
-- **Idempotencia:** para forzar una reentrega, reinicia la app (o el consumidor). El evento se vuelve a entregar, pero en `movements` **no** se duplica: `processed_events` ya tenía ese `eventId` y el listener lo ignoró.
-- **DLQ:** manda un evento malo al topic (por ejemplo `rpk topic produce wallet.movements` con un JSON corrupto). El consumidor de `movement` falla 3 veces y el evento cae en `wallet.movements.DLT` — lo ves con el `DeadLetterListener` o en el panel de Redpanda.
+Abre el **SQL Editor** de Supabase (o cualquier cliente Postgres) y corre estas consultas para comprobar, con tus ojos, que todo pasó de verdad:
+
+```sql
+-- Saldos actuales: Elena debió bajar, Geovanny subir.
+SELECT id, owner, balance FROM accounts ORDER BY owner;
+
+-- El movimiento quedó registrado (uno por transferencia).
+SELECT from_id, to_id, amount, occurred_at
+FROM movements ORDER BY occurred_at DESC LIMIT 10;
+
+-- Outbox: la fila del evento. Al principio con sent_at en NULL; un par
+-- de segundos después el relay la marca (ya la publicó al broker).
+SELECT id, topic, msg_key, sent_at, created_at
+FROM outbox ORDER BY created_at DESC LIMIT 10;
+
+-- ¿Queda algo sin publicar? (debería bajar a 0 rápido)
+SELECT count(*) AS pendientes FROM outbox WHERE sent_at IS NULL;
+
+-- Idempotencia: los eventos que el consumidor ya procesó.
+SELECT event_id, processed_at FROM processed_events ORDER BY processed_at DESC LIMIT 10;
+```
+
+- **Outbox** — tras el `POST`, la fila aparece en `outbox` y su `sent_at` se llena en segundos; en `movements` ves el registro y en Mailpit el correo.
+- **Idempotencia** — para forzar una reentrega, **reinicia la app** (con `auto-offset-reset: earliest` el grupo vuelve a leer los eventos). El evento llega otra vez, pero **no** se duplica. Compruébalo:
+
+```sql
+-- Si sale alguna fila, hubo duplicado. No debería salir ninguna.
+SELECT from_id, to_id, amount, count(*)
+FROM movements
+GROUP BY from_id, to_id, amount
+HAVING count(*) > 1;
+```
+
+El `eventId` ya estaba en `processed_events`, así que el listener lo ignoró y no guardó de nuevo.
+
+### Probar la DLQ
+
+La DLQ solo se llena cuando el consumidor **falla** con un mensaje una y otra vez. Como el endpoint valida los datos (no te deja mandar un evento malo), el mensaje "envenenado" hay que meterlo **directo al topic**. Dos caminos:
+
+**Opción A — que el listener falle a propósito (la más confiable para una demo).** En el listener de `movement`, agrega temporalmente un centinela:
+
+```kotlin
+if (evento.amount < BigDecimal.ZERO) throw IllegalStateException("evento envenenado para la demo")
+```
+
+y produce un evento con monto negativo directo al topic (por eso `rpk`, no el endpoint):
+
+```bash
+echo '{"eventId":"00000000-0000-0000-0000-000000000000","fromId":"11111111-1111-1111-1111-111111111111","toId":"22222222-2222-2222-2222-222222222222","amount":-1,"occurredAt":"2026-01-01T00:00:00Z"}'   | rpk topic produce wallet.movements --key 11111111-1111-1111-1111-111111111111
+```
+
+El listener lanza, el `DefaultErrorHandler` reintenta 3 veces (el `FixedBackOff`) y, agotados los intentos, el `DeadLetterPublishingRecoverer` publica el evento en **`wallet.movements.DLT`**.
+
+**Opción B — JSON corrupto.** Si mandas un JSON malformado, el error es de **deserialización** (ocurre antes de entrar al listener). Para que ese tipo de error llegue al `.DLT` en vez de quedar en bucle, el value-deserializer debe ir envuelto en un `ErrorHandlingDeserializer` (un paso extra de configuración). Por eso, para el taller, la Opción A es más directa.
+
+**Cómo verlo llegar al `.DLT`:**
+
+```bash
+# Consumir el topic de mensajes muertos
+rpk topic consume wallet.movements.DLT
+```
+
+También aparece en el **panel de Redpanda** (el topic `wallet.movements.DLT` con el evento dentro), o en el log si tienes el `DeadLetterListener` de arriba. Eso confirma lo que buscabas: un mensaje malo no tranca la cola —se aparta— y los demás siguen su curso.
 
 ## Lo que quedó por fuera, en una línea cada uno
 
