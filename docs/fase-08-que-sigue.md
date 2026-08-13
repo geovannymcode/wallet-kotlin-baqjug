@@ -139,11 +139,26 @@ class OutboxRelay(
 ```
 
 !!! abstract "Spring al paso: qué hace el relay, línea por línea"
-    - `@Scheduled(fixedDelay = 2000)` — Spring llama este método **solo, cada 2 segundos**, en un hilo aparte. No lo invocas tú: corre en segundo plano. (Para que funcione, la app necesita `@EnableScheduling` en una clase de configuración.)
+    - `@Scheduled(fixedDelay = 2000)` — Spring llama este método **solo, cada 2 segundos**, en un hilo aparte. No lo invocas tú: corre en segundo plano. (Para que funcione, la app necesita `@EnableScheduling`, que agregamos justo abajo.)
     - `@Transactional` — envuelve el barrido en una transacción, para que marcar `sent_at` se confirme bien.
     - `findBySentAtIsNullOrderByCreatedAt()` — trae las filas **pendientes** (las que aún no tienen `sent_at`), de la más vieja a la más nueva.
     - `kafkaTemplate.send(topic, key, payload)` — publica cada fila al broker. `KafkaTemplate` es la herramienta de Spring para publicar; el `payload` es el JSON que guardaste, y el `key` (la cuenta de origen) mantiene el orden por cuenta.
     - `fila.sentAt = Instant.now()` — la marca como enviada. Como el método es `@Transactional` y la fila es una entidad JPA gestionada, Hibernate detecta el cambio y hace el `UPDATE` solo (*dirty checking*); no necesitas un `save`.
+
+Para que ese `@Scheduled` corra de verdad, la aplicación tiene que **activar el scheduler** con `@EnableScheduling`. Va en la clase principal:
+
+```kotlin title="WalletApplication.kt"
+@SpringBootApplication
+@EnableScheduling
+class WalletApplication
+
+fun main(args: Array<String>) {
+    runApplication<WalletApplication>(*args)
+}
+```
+
+!!! warning "Sin `@EnableScheduling`, el outbox se queda mudo"
+    Es un olvido silencioso, de los que cuestan encontrar. Sin esa anotación, Spring nunca arranca el scheduler, así que `publicarPendientes()` **no se ejecuta nunca**: la fila se queda en `outbox` con `sent_at` en `NULL` para siempre, nada llega a Kafka, y como el consumidor no recibe eventos, `processed_events` sale vacío. La transferencia "parece" funcionar (el saldo se mueve), pero los eventos no viajan. Si ves el `sent_at` siempre en NULL, empieza por acá.
 
 Todo el ciclo, de la transacción al broker, se ve así:
 
