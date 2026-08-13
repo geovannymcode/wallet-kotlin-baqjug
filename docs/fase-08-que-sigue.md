@@ -441,6 +441,6 @@ También aparece en el **panel de Redpanda** (el topic `wallet.movements.DLT` co
 
 Construiste una wallet que mueve plata de forma transaccional, la expusiste por REST, y desacoplaste el registro y la notificación con eventos sobre Redpanda, con consumidores independientes que reaccionan sin conocerse. Y ahora sabes qué le falta para producción, con código, no con handwaving: outbox para no perder eventos, idempotencia para no duplicarlos, y DLQ para no atascarte con uno malo.
 
-¿Quieres exprimir más el lado Kotlin? En la [Fase 9](fase-09-coroutines.md) —avanzada y opcional— tomamos el consumidor bloqueante de la Fase 7 y lo llevamos a **coroutines**, para cuando un consumidor tiene que llamar a varios servicios externos sin bloquear un hilo por cada espera.
+¿Quieres exprimir más el lado Kotlin? En la [Fase 9](fase-09-coroutines.md), tomamos el consumidor bloqueante de la Fase 7 y lo llevamos a **coroutines**, para cuando un consumidor tiene que llamar a varios servicios externos sin bloquear un hilo por cada espera.
 
 Revisa las [Referencias](referencias.md) para seguir por tu cuenta.
