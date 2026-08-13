@@ -102,7 +102,7 @@ class TransferService(
         require(request.fromId != request.toId) { "No puedes transferir a la misma cuenta" }
         when (val result = accountService.moveMoney(request.fromId, request.toId, request.amount)) {
             is MoveResult.Success -> {
-                val evento = MovimientoRegistrado(request.fromId, request.toId, request.amount)
+                val evento = MovimientoRegistrado(fromId = request.fromId, toId = request.toId, amount = request.amount)
                 outbox.save(
                     OutboxEvent(
                         topic = "wallet.movements",
@@ -138,9 +138,25 @@ class OutboxRelay(
 }
 ```
 
+!!! abstract "Spring al paso: qué hace el relay, línea por línea"
+    - `@Scheduled(fixedDelay = 2000)` — Spring llama este método **solo, cada 2 segundos**, en un hilo aparte. No lo invocas tú: corre en segundo plano. (Para que funcione, la app necesita `@EnableScheduling` en una clase de configuración.)
+    - `@Transactional` — envuelve el barrido en una transacción, para que marcar `sent_at` se confirme bien.
+    - `findBySentAtIsNullOrderByCreatedAt()` — trae las filas **pendientes** (las que aún no tienen `sent_at`), de la más vieja a la más nueva.
+    - `kafkaTemplate.send(topic, key, payload)` — publica cada fila al broker. `KafkaTemplate` es la herramienta de Spring para publicar; el `payload` es el JSON que guardaste, y el `key` (la cuenta de origen) mantiene el orden por cuenta.
+    - `fila.sentAt = Instant.now()` — la marca como enviada. Como el método es `@Transactional` y la fila es una entidad JPA gestionada, Hibernate detecta el cambio y hace el `UPDATE` solo (*dirty checking*); no necesitas un `save`.
+
 Todo el ciclo, de la transacción al broker, se ve así:
 
 ![Diagrama de secuencia del patrón outbox: TransferService mueve el saldo y guarda una fila en la tabla outbox dentro de una sola transacción en Postgres; un OutboxRelay, cada 2 segundos, lee las filas no enviadas con FOR UPDATE SKIP LOCKED, las publica en Redpanda y marca sent_at](img/Img_5.png)
+
+El diagrama, paso a paso:
+
+1. **`TransferService` → Postgres (una sola transacción):** mueve el saldo **y** guarda la fila en la tabla `outbox`, las dos cosas juntas. Si algo falla, se revierten ambas.
+2. **`OutboxRelay` lee (cada 2 s):** despierta por el `@Scheduled` y le pide a Postgres las filas no enviadas (`sent_at` en null). En producción, con `FOR UPDATE SKIP LOCKED` para que dos relays no tomen la misma.
+3. **`OutboxRelay` → Redpanda:** publica cada fila como evento en el topic.
+4. **`OutboxRelay` → Postgres:** marca la fila con `sent_at`, para no volver a publicarla.
+
+La clave: el paso 1 es transaccional (solo la base); del 2 al 4, el relay se encarga de que lo que quedó guardado **llegue** al broker, aunque haya reintentos por el camino.
 
 !!! note "Por qué no lo metimos en el taller en vivo"
     El outbox agrega una tabla, un relay con `@Scheduled` y serialización a mano. Para 60 minutos, habría tapado el concepto central (publicar y consumir) con plomería. Pero en algo con plata, el outbox no es opcional: es la diferencia entre "casi siempre avisa" y "siempre avisa".
@@ -173,6 +189,9 @@ data class MovimientoRegistrado(
 )
 ```
 
+!!! danger "Ojo: al agregar `eventId`, construye con nombres"
+    Metimos `eventId` como **primer** campo, con valor por defecto. Si en algún lado construyes el evento por **posición** —`MovimientoRegistrado(request.fromId, ...)`—, ahora ese primer argumento se iría a `eventId` y **rompe**. La regla: construye siempre con **argumentos con nombre** —`MovimientoRegistrado(fromId = ..., toId = ..., amount = ...)`— y deja que `eventId` se autogenere. Lo mismo si mañana agregas otro campo: con nombres, nada se corre de lugar. (Por eso el `TransferService` de la Fase 6 y el outbox de arriba ya construyen con nombres.)
+
 ```sql title="db/migration/V4__create_processed_events.sql"
 CREATE TABLE processed_events (
     event_id     UUID        NOT NULL,
@@ -181,17 +200,57 @@ CREATE TABLE processed_events (
 );
 ```
 
-El listener chequea, procesa y marca, todo en una transacción:
+Necesitas dos piezas nuevas: la **entidad** que marca lo ya procesado y su **repositorio** (mapean la tabla `processed_events`, en `movement/messaging`):
+
+```kotlin title="movement/messaging/ProcessedEvent.kt"
+package com.baqjug.wallet.movement.messaging
+
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
+import jakarta.persistence.Table
+import java.time.Instant
+import java.util.UUID
+
+@Entity
+@Table(name = "processed_events")
+class ProcessedEvent(
+    @Id
+    @Column(name = "event_id")
+    val eventId: UUID,
+
+    @Column(name = "processed_at", nullable = false)
+    val processedAt: Instant = Instant.now()
+)
+```
+
+```kotlin title="movement/messaging/ProcessedEventRepository.kt"
+package com.baqjug.wallet.movement.messaging
+
+import org.springframework.data.jpa.repository.JpaRepository
+import java.util.UUID
+
+interface ProcessedEventRepository : JpaRepository<ProcessedEvent, UUID>
+```
+
+Y ahora sí el listener, con `movementService` y `processedRepo` inyectados, chequea, procesa y marca, todo en una transacción:
 
 ```kotlin title="movement/messaging/MovimientoPersistenceListener.kt (idempotente)"
-@KafkaListener(topics = ["wallet.movements"], groupId = "movement")
-@Transactional
-fun onMovimiento(evento: MovimientoRegistrado) {
-    if (processedRepo.existsById(evento.eventId)) {
-        return // ya lo procesé, lo ignoro
+@Component
+class MovimientoPersistenceListener(
+    private val movementService: MovementService,
+    private val processedRepo: ProcessedEventRepository
+) {
+
+    @KafkaListener(topics = ["wallet.movements"], groupId = "movement")
+    @Transactional
+    fun onMovimiento(evento: MovimientoRegistrado) {
+        if (processedRepo.existsById(evento.eventId)) {
+            return // ya lo procesé, lo ignoro
+        }
+        movementService.record(evento.fromId, evento.toId, evento.amount)
+        processedRepo.save(ProcessedEvent(evento.eventId))
     }
-    movementService.record(evento.fromId, evento.toId, evento.amount)
-    processedRepo.save(ProcessedEvent(evento.eventId))
 }
 ```
 
@@ -256,6 +315,34 @@ class DeadLetterListener {
 El guion de la demo: mandas el evento envenenado, el consumidor de `movement` falla 3 veces (el `FixedBackOff`), y el evento aparece en `wallet.movements.DLT` —en tu consola por el `DeadLetterListener`, o en el panel de Redpanda—. Eso es justo lo que quieres mostrar: un mensaje malo no tranca la cola, se aparta y los demás siguen.
 
 ---
+
+## Probar los escenarios
+
+Para ejercitar todo esto sin adivinar, deja un archivo `test.http` en el proyecto: IntelliJ lo corre con el ▶️ al lado de cada request, y también lo puedes importar a Postman.
+
+```http title="test.http"
+### 1. Consultar el saldo de Elena
+GET http://localhost:8080/api/accounts/11111111-1111-1111-1111-111111111111
+
+### 2. Transferir (dispara el evento: outbox -> relay -> consumidores)
+POST http://localhost:8080/api/transfers
+Content-Type: application/json
+
+{
+  "fromId": "11111111-1111-1111-1111-111111111111",
+  "toId": "22222222-2222-2222-2222-222222222222",
+  "amount": 15000.00
+}
+
+### 3. Consultar el saldo de Geovanny (debió subir)
+GET http://localhost:8080/api/accounts/22222222-2222-2222-2222-222222222222
+```
+
+Qué mirar en cada escenario:
+
+- **Outbox:** después del `POST /api/transfers`, mira la tabla `outbox` en Supabase — ves la fila aparecer y, un par de segundos después, su `sent_at` llenarse (el relay ya la publicó). En `movements` aparece la fila y en Mailpit el correo.
+- **Idempotencia:** para forzar una reentrega, reinicia la app (o el consumidor). El evento se vuelve a entregar, pero en `movements` **no** se duplica: `processed_events` ya tenía ese `eventId` y el listener lo ignoró.
+- **DLQ:** manda un evento malo al topic (por ejemplo `rpk topic produce wallet.movements` con un JSON corrupto). El consumidor de `movement` falla 3 veces y el evento cae en `wallet.movements.DLT` — lo ves con el `DeadLetterListener` o en el panel de Redpanda.
 
 ## Lo que quedó por fuera, en una línea cada uno
 
