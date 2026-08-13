@@ -51,6 +51,16 @@ fun moveMoney(fromId: UUID, toId: UUID, amount: BigDecimal): MoveResult {
 }
 ```
 
+Línea por línea, lo que hace:
+
+1. **Busca la cuenta de origen** (`findById(fromId)`); si no existe, corta de una con `AccountNotFound(fromId)` gracias al operador Elvis `?:`.
+2. **Busca la de destino**, igual; si falta, `AccountNotFound(toId)`.
+3. **Valida el saldo:** si `from.balance < amount`, devuelve `InsufficientFunds` sin mover un peso.
+4. **Mueve la plata:** debita el origen (`subtract`) y acredita el destino (`add`).
+5. **Persiste las dos cuentas** y devuelve `Success`.
+
+La clave está en el paso 5 junto con la transacción: como el método es `@Transactional`, los dos `save` se confirman juntos. Si el segundo falla, el primero se revierte y **ninguna cuenta queda a medias**.
+
 Como este método **sí escribe** en la base, la transacción de la clase cambia: subimos `@Transactional` (lectura y escritura) al nivel de la clase, y dejamos el `getById` como solo-lectura a nivel de método. La clase completa queda así:
 
 ```kotlin title="account/domain/AccountService.kt (la clase completa)"
@@ -251,6 +261,16 @@ Consulta los saldos después: Elena quedó en 70000 y Geovanny en 30000. Intenta
 Con esto, la feature `account` ya tiene todas sus piezas conectadas: la entidad, el DTO, el mapper, el servicio y el repositorio.
 
 ![Diagrama de clases de la feature account: AccountEntity (entidad JPA) y AccountResponse (DTO de salida) unidos por AccountMapper; AccountService usa AccountRepository (interfaz) y AccountMapper, y devuelve un MoveResult (sealed class)](img/Img_4.png)
+
+El diagrama, pieza por pieza:
+
+1. **`AccountEntity`** — la entidad JPA, el mapeo de la tabla `accounts`. Vive puertas adentro; el cliente nunca la ve.
+2. **`AccountResponse`** — el DTO de salida, lo que sí ve el cliente. Expone solo lo que debe.
+3. **`AccountMapper`** — traduce `AccountEntity` → `AccountResponse`. Esa conversión se arma en un solo lugar.
+4. **`AccountRepository`** — la interfaz de acceso a datos; Spring Data la implementa sola.
+5. **`AccountService`** — el corazón: usa el repositorio y el mapper para leer, y para mover plata devuelve un `MoveResult`, la sealed class con los tres desenlaces.
+
+Fíjate cómo entidad, DTO, mapper, repositorio y servicio viven todos dentro de la feature `account`, en el mismo paquete. Eso es _package by feature_: lo que cambia junto, junto.
 
 ## Cierre de la fase
 

@@ -26,6 +26,13 @@ La mensajería por eventos corta ese nudo. En vez de que `transfer` llame a cada
 
 ![Antes (acoplado): transfer llama directo a movement, correo, push y antifraude. Después (por eventos): transfer solo publica el evento MovimientoRegistrado en el broker, y movement, notificación y antifraude lo escuchan cada uno por su cuenta](img/Img_3.png)
 
+El diagrama, antes y después:
+
+- **Antes (acoplado):** `transfer` llama directo a `movement`, al correo, al push y a antifraude. Son cuatro llamadas en línea; cada interesado nuevo es otra llamada más adentro de `transfer`, y si una se pone lenta o falla, arrastra a la transferencia.
+- **Después (por eventos):** `transfer` publica **un solo** evento, `MovimientoRegistrado`, en el broker y se desentiende. `movement`, `notification` y antifraude lo escuchan cada uno por su cuenta. Sumar un consumidor nuevo **no toca** `transfer`.
+
+Lo que cambió no es cuántas flechas hay, sino **de quién dependen**: en el "antes" todas salen de `transfer`; en el "después", `transfer` solo le habla al broker y deja de conocer a sus consumidores.
+
 `transfer` ya no sabe quién escucha ni cuántos. Publica y sigue. Ese es todo el truco, y cambia cómo crece el sistema.
 
 ## El vocabulario mínimo

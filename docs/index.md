@@ -21,6 +21,14 @@ A vista de pájaro es simple: unos clientes entran por HTTP a una aplicación, y
 
 ![Resumen del flujo síncrono: la petición REST entra a transfer, que valida y mueve el saldo en account, y registra el movimiento en movement con una llamada directa dentro del mismo proceso](img/Img_9.png)
 
+El diagrama, paso a paso:
+
+1. **Cliente → `transfer` (HTTP):** llega un `POST` con origen, destino y monto.
+2. **`transfer` valida y mueve en `account`:** comprueba que haya saldo, debita la cuenta de origen y acredita la de destino.
+3. **`transfer` → `movement` (llamada directa):** en la misma operación, deja registrado el movimiento.
+
+Todo ocurre dentro del mismo proceso y de una sola transacción: si algo falla, no queda nada a medias. La contra —que pagaremos más adelante— es que `transfer` conoce a todos, y cada cosa nueva que cuelgue de una transferencia lo obliga a cambiar.
+
 ## Por qué este stack (y no otro)
 
 Cada pieza responde a un requisito del problema, no a la moda:
@@ -38,6 +46,14 @@ El "por qué" completo, requisito por requisito, está en la [Fase 0](fase-00-ar
 Cuando la wallet crece, a cada transferencia le empiezan a colgar cosas: manda un correo, dispara un push, avisa a antifraude, refresca métricas. Hacerlo todo con llamadas directas termina en un `transfer` que conoce a media empresa y que se cae si se cae el correo. La mensajería por eventos corta ese nudo: `transfer` publica un hecho, "se registró un movimiento", y se desentiende; cada interesado reacciona por su cuenta.
 
 ![Resumen del flujo por eventos: transfer mueve el saldo en account y publica el evento MovimientoRegistrado en Redpanda, que notification consume y notifica](img/Img_10.png)
+
+El diagrama, paso a paso:
+
+1. **`transfer` mueve el saldo en `account`**, igual que antes.
+2. **`transfer` publica el evento** `MovimientoRegistrado` en Redpanda y se desentiende: no sabe —ni le importa— quién lo va a escuchar.
+3. **`notification` consume el evento** por su cuenta y avisa. Mañana, otro interesado (push, antifraude) se suscribe y reacciona **sin tocar `transfer`**.
+
+El cambio de fondo: `transfer` dejó de llamar a nadie; ahora solo anuncia lo que pasó. Ahí está el desacople.
 
 Eso —y cómo endurecerlo para producción, las coroutines y el despliegue— lo construyes **de la Fase 5 en adelante**. Si por ahora vienes por la parte REST, con las Fases 0 a 4 ya tienes una wallet completa y redonda.
 

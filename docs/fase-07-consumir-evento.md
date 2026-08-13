@@ -104,6 +104,12 @@ class EmailNotifier(
 }
 ```
 
+Paso a paso:
+
+1. **Pide la cuenta destino** a `AccountService` (`getById(evento.toId)`), que trae al dueño y su email.
+2. **Arma el correo** con `SimpleMailMessage`: remitente, destinatario, asunto y cuerpo.
+3. **Lo envía** con `mailSender.send(...)`, que en el taller cae en Mailpit en vez de salir a internet.
+
 !!! abstract "Spring al paso: `JavaMailSender`"
     `JavaMailSender` es la herramienta de Spring para mandar correos. La autoconfigura Boot con las propiedades `spring.mail.*` que pusiste; tú solo la inyectas. `SimpleMailMessage` es un correo de texto plano: remitente, destinatario, asunto y cuerpo. Para HTML o adjuntos usarías `MimeMessage`, pero para un aviso nos sobra con esto.
 
@@ -163,6 +169,14 @@ class MovimientoPersistenceListener(
     Fíjate: `notification` está en el grupo `notification` y `movement` en el grupo `movement`. Como son grupos distintos, **cada uno recibe una copia** de cada evento. Una sola transferencia dispara un aviso y un registro, en paralelo, sin que se pisen. Si ambos estuvieran en el mismo grupo, el broker le daría el evento a uno solo. Esa diferencia es el corazón del pub/sub.
 
 ![Diagrama de flujo del pub/sub: transfer publica el evento MovimientoRegistrado en el topic wallet.movements de Redpanda; el grupo notification lo recibe y envía el correo, y el grupo movement lo recibe y guarda el registro](img/Img_2.png)
+
+El diagrama, paso a paso:
+
+1. **`transfer` publica** `MovimientoRegistrado` en el topic `wallet.movements` de Redpanda, y ahí termina su trabajo.
+2. **El grupo `notification` recibe una copia** del evento y manda el correo (por Mailpit).
+3. **El grupo `movement` recibe otra copia** del mismo evento y guarda el registro.
+
+Como son dos grupos distintos, cada uno recibe **su propia copia** y trabaja en paralelo, sin pisarse. Y `transfer` ni se entera de que existen: publicó y siguió.
 
 !!! note "Un consumidor nuevo no toca a `transfer`"
     Este es el pago de todo el trabajo. Agregaste dos consumidores y no tocaste una línea de `transfer`. Mañana quieres antifraude: creas otro `@KafkaListener` con su grupo y listo. `transfer` ni se entera. Compara eso con la rama `Success` de la Fase 4, donde cada cosa nueva era editar y redesplegar `transfer`.
