@@ -1,6 +1,6 @@
-# Fase 9 · Coroutines (avanzada y opcional)
+# Fase 9 · Coroutines 
 
-**Rama**: opcional. No hace falta para que la wallet funcione; es un paso extra para quien quiera exprimir el lado Kotlin.
+**Rama**: No hace falta para que la wallet funcione; es un paso extra para quien quiera exprimir el lado Kotlin.
 **Lo que vas a lograr**: entender qué es una coroutine y una función suspendida, y llevar el consumidor bloqueante de la Fase 7 a una versión que llama a varios servicios externos **en paralelo**, sin bloquear un hilo por cada espera.
 
 !!! warning "Esta fase es avanzada y opcional"
@@ -117,6 +117,37 @@ class EmailClient(private val webClient: WebClient) {
 }
 ```
 
+Los otros dos son **idénticos**, solo cambia el `.uri(...)` (y `antifraud` expone `revisar` en vez de `enviar`, por semántica):
+
+```kotlin title="notification/domain/PushClient.kt"
+@Component
+class PushClient(private val webClient: WebClient) {
+    suspend fun enviar(evento: MovimientoRegistrado) {
+        webClient.post()
+            .uri("/push")
+            .bodyValue(evento)
+            .retrieve()
+            .awaitBodilessEntity()
+    }
+}
+```
+
+```kotlin title="notification/domain/AntifraudClient.kt"
+@Component
+class AntifraudClient(private val webClient: WebClient) {
+    suspend fun revisar(evento: MovimientoRegistrado) {
+        webClient.post()
+            .uri("/antifraud")
+            .bodyValue(evento)
+            .retrieve()
+            .awaitBodilessEntity()
+    }
+}
+```
+
+!!! note "Tres clientes separados, a propósito"
+    Podrías tener un solo cliente con un parámetro para la ruta, pero cada servicio externo —correo, push, antifraude— es una responsabilidad distinta que mañana evoluciona por su lado (uno agrega reintentos, otro cambia de proveedor). Un cliente por servicio deja cada cambio contenido. Es el mismo criterio de _package by feature_: preferimos la duplicación honesta a la abstracción prematura.
+
 !!! note "Necesitas WebClient y el puente de coroutines"
     `WebClient` y las extensiones `awaitBody`/`awaitBodilessEntity` vienen de WebFlux. Agrega al `build.gradle.kts`:
 
@@ -127,11 +158,87 @@ class EmailClient(private val webClient: WebClient) {
 
     `WebClient` convive sin problema con tu app web tradicional: acá lo usamos solo como **cliente** para llamar afuera, no cambiamos cómo tu wallet atiende sus propias peticiones. El `kotlinx-coroutines-reactor` es el puente que convierte el mundo reactivo de WebClient en funciones suspendidas.
 
-## El listener, también suspendido
+## Correr esto 100% local: servicios externos de mentira
 
-Falta enganchar esto al consumidor. La buena noticia: desde **Spring Kafka 3.2**, un `@KafkaListener` puede ser una función `suspend`. Spring sabe ejecutarla como coroutine.
+Los clientes de arriba hacen `POST` a `/emails`, `/push` y `/antifraud`. Pero en un taller no tenemos esos tres servicios de verdad, y montarlos sería otro proyecto. La solución: un **controlador de mentira** dentro de la misma app que responde en esas rutas y **simula la latencia** de un servicio externo (unos 200 ms). Así ves el efecto de las coroutines sin depender de nada de afuera.
 
-```kotlin title="notification/messaging/MovimientoNotificationListener.kt"
+```kotlin title="notification/web/MockExternalController.kt (SOLO PARA LA DEMO)"
+package com.baqjug.wallet.notification.web
+
+import com.baqjug.wallet.movement.domain.MovimientoRegistrado
+import org.slf4j.LoggerFactory
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
+
+@RestController
+@RequestMapping("/mock-external")
+class MockExternalController {
+
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    @PostMapping("/emails")
+    fun emails(@RequestBody evento: MovimientoRegistrado): ResponseEntity<Void> =
+        simularLatencia("email", evento)
+
+    @PostMapping("/push")
+    fun push(@RequestBody evento: MovimientoRegistrado): ResponseEntity<Void> =
+        simularLatencia("push", evento)
+
+    @PostMapping("/antifraud")
+    fun antifraud(@RequestBody evento: MovimientoRegistrado): ResponseEntity<Void> =
+        simularLatencia("antifraud", evento)
+
+    private fun simularLatencia(
+        servicio: String,
+        evento: MovimientoRegistrado
+    ): ResponseEntity<Void> {
+        log.info("🐢 [mock-external] {} procesando {}...", servicio, evento.toId)
+        Thread.sleep(200)   // simula un servicio externo lento
+        log.info("✅ [mock-external] {} terminó", servicio)
+        return ResponseEntity.accepted().build()
+    }
+}
+```
+
+!!! warning "Esto es andamiaje de la demo, no producción"
+    El `MockExternalController` existe **solo** para que el ejercicio corra en tu máquina sin tres servicios reales. En producción esas rutas viven en otros servicios (o en proveedores), y tu wallet apenas los llama. El `Thread.sleep(200)` está ahí a propósito para imitar una red lenta; nunca metas un `sleep` así en tu código de verdad.
+
+Y para que los clientes sepan a dónde pegar, un `WebClient` con la URL base configurable:
+
+```kotlin title="notification/config/WebClientConfig.kt"
+package com.baqjug.wallet.notification.config
+
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.web.reactive.function.client.WebClient
+
+@Configuration
+class WebClientConfig {
+
+    @Bean
+    fun webClient(
+        @Value("\${wallet.notification.external-base-url:http://localhost:8080/mock-external}")
+        baseUrl: String
+    ): WebClient = WebClient.builder()
+        .baseUrl(baseUrl)
+        .build()
+}
+```
+
+!!! note "La URL base, por configuración"
+    Por defecto apunta al mock (`http://localhost:8080/mock-external`), así arranca sin que toques nada. En un entorno real cambias `wallet.notification.external-base-url` (o su variable de entorno) para apuntar a los servicios de verdad, sin recompilar. Es el mismo criterio de `${...:default}` que ya usaste con el correo en la Fase 7.
+
+## El listener: uno nuevo, sin tocar el que ya anda
+
+Falta enganchar esto al consumidor. La buena noticia: desde **Spring Kafka 3.2**, un `@KafkaListener` puede ser una función `suspend`; Spring la corre como coroutine sin que montes nada más.
+
+Ahora, una decisión de diseño. En la [Fase 7](fase-07-consumir-evento.md) ya existe `MovimientoNotificationListener` (grupo `notification`), que manda el **correo de verdad** por Mailpit. Ese anda bien y **no lo vamos a tocar**. En vez de reemplazarlo, **agregamos un listener nuevo**, `MovimientoCoroutineListener`, con su **propio `groupId`** (`notification-coroutines-demo`):
+
+```kotlin title="notification/messaging/MovimientoCoroutineListener.kt"
 package com.baqjug.wallet.notification.messaging
 
 import com.baqjug.wallet.movement.domain.MovimientoRegistrado
@@ -140,19 +247,40 @@ import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
 
 @Component
-class MovimientoNotificationListener(
+class MovimientoCoroutineListener(
     private val notificationService: NotificationService
 ) {
 
-    @KafkaListener(topics = ["wallet.movements"], groupId = "notification")
+    @KafkaListener(
+        topics = ["wallet.movements"],
+        groupId = "notification-coroutines-demo"
+    )
     suspend fun onMovimiento(evento: MovimientoRegistrado) {
         notificationService.notificar(evento)
     }
 }
 ```
 
+!!! danger "Decisión de diseño: sumar, no reemplazar"
+    El listener de la Fase 7 (`MovimientoNotificationListener`, grupo `notification`) ya hace un trabajo real —el correo— y no queremos romperlo para mostrar coroutines. Como cada `groupId` recibe **su propia copia** de cada evento (lo viste en la Fase 7), el listener nuevo con grupo `notification-coroutines-demo` consume el mismo topic **en paralelo y sin pisar** al viejo: lleva su propio offset y no le quita eventos a nadie. Un mismo `wallet.movements`, dos consumidores independientes. El día que quieras que esta versión reemplace a la vieja, jubilas el listener de la Fase 7; por ahora conviven para poder comparar.
+
 !!! abstract "Spring al paso: `@KafkaListener suspend fun`"
     El método del listener es `suspend`, y con eso puede llamar a `notificationService.notificar(...)`, que también es `suspend`. Spring for Apache Kafka (desde la versión 3.2) detecta que el listener es suspendido y lo corre en una coroutine, sin que tú montes nada más. Así la cadena entera —listener → servicio → clientes HTTP— es no bloqueante de punta a punta.
+
+### Verlo funcionar
+
+Con la app y Redpanda arriba, haz una transferencia normal (la misma de la Fase 7). Además del correo real que ya mandaba `notification`, en los logs de la app vas a ver al mock trabajar:
+
+```text
+🐢 [mock-external] email procesando 22222222-...
+🐢 [mock-external] push procesando 22222222-...
+🐢 [mock-external] antifraud procesando 22222222-...
+✅ [mock-external] push terminó
+✅ [mock-external] email terminó
+✅ [mock-external] antifraud terminó
+```
+
+Fíjate en el orden: los tres `🐢 procesando` salen **casi al mismo tiempo**, no uno después de que el anterior terminó. Eso es el `async` + `awaitAll`: las tres llamadas arrancaron juntas y `notificar` completó en ~200 ms (lo que tardó la más lenta), no en ~600 ms. Si las llamaras en serie —`email.enviar(...)`, luego `push.enviar(...)`, luego `antifraud.revisar(...)`— verías cada `🐢` esperar al `✅` anterior, y el total treparía a ~600 ms.
 
 ## Muchas llamadas: `parMap` (Arrow)
 
