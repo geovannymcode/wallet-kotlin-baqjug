@@ -1,4 +1,6 @@
-# Guía de configuración: entorno local, Redpanda Cloud y CI
+# Guía de configuración
+
+## Entorno local, Redpanda Cloud y CI
 
 Esta guía cubre tres piezas que sostienen el taller y que conviene tener claras antes de la [Fase 6](fase-06-publicar-evento.md) (eventos) y la [Fase 10](fase-10-despliegue.md) (despliegue):
 
@@ -378,28 +380,3 @@ Los errores reales que salen en este montaje, con su causa:
 | El cliente conecta y luego se cae | `--advertise-kafka-addr` mal configurado: el broker anuncia un nombre que tu app no resuelve. |
 | `password authentication failed for user "postgres"` con Supabase | El *pooler* toma el usuario del propio JDBC URL. Agrega `?user=postgres.<ref-del-proyecto>` al final del URL. |
 | `permission denied: ./gradlew` | Falta el bit de ejecución en git (`git update-index --chmod=+x gradlew`). |
-
----
-
-## Checklist
-
-**Local**
-
-- [ ] `docker compose up -d` con los cuatro servicios corriendo
-- [ ] Topics `wallet.movements` y `wallet.movements-dlt` creados
-- [ ] `application-local.yaml` en su lugar y `SPRING_PROFILES_ACTIVE=local` activo
-- [ ] Mailpit abriendo en <http://localhost:8025>
-
-**Nube**
-
-- [ ] Clúster Serverless creado y bootstrap copiado
-- [ ] Usuario SCRAM-SHA-256 creado y contraseña guardada
-- [ ] Los dos topics creados (`wallet.movements`, `wallet.movements-dlt`)
-- [ ] Las tres ACLs: Topic (`Prefixed` `wallet.`), Consumer Group (`Any`), Cluster
-- [ ] `auth-exception-retry-interval` configurado
-
-**CI**
-
-- [ ] `.github/workflows/ci.yml` commiteado
-- [ ] `git ls-files -s gradlew` devuelve `100755`
-- [ ] El workflow aparece en verde en la pestaña *Actions*
