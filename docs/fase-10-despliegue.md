@@ -7,7 +7,7 @@
     El código de **negocio** no cambia. Lo único que se ajusta es la plomería para que la wallet viva fuera de tu laptop: imagen Docker, integración continua, y unas cuantas piezas de configuración que en local no se notan pero en la nube son la diferencia entre "arranca" y "no arranca". Es opcional, pero es lo que separa "me corre en local" de "está en internet".
 
 !!! note "¿Y correr todo esto local con Docker?"
-    Esta fase es el camino a la **nube**. Si lo que quieres es levantar el stack completo (Postgres, Redpanda y Mailpit) en tu máquina con `docker compose`, eso vive aparte, en [Entorno local con Docker](entorno-local-docker.md). La app está hecha para **ambos** casos; lo que cambia es la configuración por perfil.
+    Esta fase es el camino a la **nube**. Si lo que quieres es levantar el stack completo (Postgres, Redpanda y Mailpit) en tu máquina con `docker compose`, eso vive aparte, en la [guía de configuración](configuracion.md#parte-1-entorno-local-con-docker-compose). La app está hecha para **ambos** casos; lo que cambia es la configuración por perfil.
 
 ---
 
@@ -204,7 +204,7 @@ class ResendMailPort(
 
 El código nunca sabe un secreto; lo lee del entorno. Lo que cambia es **quién** pone esas variables en cada lado:
 
-- **En tu máquina**: en IntelliJ (**Run → Edit Configurations → Environment variables**), o en el `docker compose` del [entorno local](entorno-local-docker.md).
+- **En tu máquina**: en IntelliJ (**Run → Edit Configurations → Environment variables**), o en el `docker compose` del [entorno local](configuracion.md#parte-1-entorno-local-con-docker-compose).
 - **En GitHub Actions**: en **Settings → Secrets and variables → Actions** del repo.
 - **En Render**: en la sección **Environment** del servicio.
 
@@ -221,7 +221,7 @@ Las que necesita la wallet **en la nube**:
 | `WALLET_DEMO_DLQ_SENTINEL` | Flag de la demo de DLQ — apagado (`false`) fuera de la demostración |
 
 !!! note "`PORT` no la pones tú"
-    Render inyecta `PORT` solo; tu app la lee con `server.port: ${PORT:8080}`. Y como el correo en la nube va por HTTP (Resend), **no** necesitas las `SMTP_*` en producción: esas viven solo en el [entorno local](entorno-local-docker.md).
+    Render inyecta `PORT` solo; tu app la lee con `server.port: ${PORT:8080}`. Y como el correo en la nube va por HTTP (Resend), **no** necesitas las `SMTP_*` en producción: esas viven solo en el [entorno local](configuracion.md#parte-1-entorno-local-con-docker-compose).
 
 ## Cierre de la fase
 
@@ -229,4 +229,4 @@ Con esto, la wallet dejó de vivir solo en tu laptop: cada `push` pasa por CI (c
 
 Y con eso cerramos el taller: arrancaste con un endpoint REST contra una base, y terminaste con una wallet transaccional, desacoplada por eventos, endurecida con outbox/idempotencia/DLQ, testeada, empaquetada y desplegada. Nada de humo: código y tuberías de verdad.
 
-Para levantar todo local con un solo `docker compose`, sigue en [Entorno local con Docker](entorno-local-docker.md). Y revisa las [Referencias](referencias.md) para seguir por tu cuenta.
+Para levantar todo local con un solo `docker compose`, sigue en la [guía de configuración](configuracion.md). Y revisa las [Referencias](referencias.md) para seguir por tu cuenta.
