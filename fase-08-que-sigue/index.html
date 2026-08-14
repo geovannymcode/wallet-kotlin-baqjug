@@ -287,6 +287,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="../configuracion/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Guía de Configuración
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../referencias/" class="md-tabs__link">
         
   
@@ -807,6 +826,62 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="3. Cola de mensajes muertos (DLQ)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#como-verlo-en-una-demo-sin-slack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cómo verlo en una demo (sin Slack)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#probar-los-escenarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Probar los escenarios
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Probar los escenarios">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#verificar-en-la-base-de-datos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verificar en la base de datos
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#probar-la-dlq" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Probar la DLQ
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -854,7 +929,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 9 · Coroutines (avanzada)
+    Fase 9 · Coroutines
   
 
     
@@ -882,7 +957,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 10 · Despliegue con GitHub Actions
+    Fase 10 · Despliegue a la nube
   
 
     
@@ -899,6 +974,33 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuracion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guía de Configuración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -976,53 +1078,150 @@
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="k">CONSTRAINT</span><span class="w"> </span><span class="n">pk_outbox</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="p">)</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">);</span>
 </span></code></pre></div>
-<p>En vez de publicar, <code>transfer</code> guarda la fila en la misma transacción del movimiento. Fíjate que ahora el método sí es <code>@Transactional</code>, y adentro pasan las dos cosas juntas:</p>
-<div class="language-kotlin highlight"><span class="filename">transfer/domain/TransferService.kt (con outbox)</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@Service</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">TransferService</span><span class="p">(</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">accountService</span><span class="p">:</span><span class="w"> </span><span class="n">AccountService</span><span class="p">,</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">outbox</span><span class="p">:</span><span class="w"> </span><span class="n">OutboxRepository</span><span class="p">,</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">mapper</span><span class="p">:</span><span class="w"> </span><span class="n">ObjectMapper</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="nd">@Transactional</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">transfer</span><span class="p">(</span><span class="n">request</span><span class="p">:</span><span class="w"> </span><span class="n">TransferRequest</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">        </span><span class="n">require</span><span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="na">fromId</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">toId</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s">&quot;No puedes transferir a la misma cuenta&quot;</span><span class="w"> </span><span class="p">}</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">        </span><span class="k">when</span><span class="w"> </span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">accountService</span><span class="p">.</span><span class="na">moveMoney</span><span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="na">fromId</span><span class="p">,</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">toId</span><span class="p">,</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">amount</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">            </span><span class="k">is</span><span class="w"> </span><span class="n">MoveResult</span><span class="p">.</span><span class="na">Success</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">                </span><span class="kd">val</span><span class="w"> </span><span class="nv">evento</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MovimientoRegistrado</span><span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="na">fromId</span><span class="p">,</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">toId</span><span class="p">,</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">amount</span><span class="p">)</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">                </span><span class="n">outbox</span><span class="p">.</span><span class="na">save</span><span class="p">(</span>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">                    </span><span class="n">OutboxEvent</span><span class="p">(</span>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">                        </span><span class="n">topic</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;wallet.movements&quot;</span><span class="p">,</span>
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">                        </span><span class="n">msgKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">evento</span><span class="p">.</span><span class="na">fromId</span><span class="p">.</span><span class="na">toString</span><span class="p">(),</span>
-</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">                        </span><span class="n">payload</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mapper</span><span class="p">.</span><span class="na">writeValueAsString</span><span class="p">(</span><span class="n">evento</span><span class="p">)</span>
-</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">                    </span><span class="p">)</span>
-</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">                </span><span class="p">)</span>
-</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">            </span><span class="p">}</span>
-</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">            </span><span class="k">is</span><span class="w"> </span><span class="n">MoveResult</span><span class="p">.</span><span class="na">InsufficientFunds</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="n">InsufficientFundsException</span><span class="p">()</span>
-</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">            </span><span class="k">is</span><span class="w"> </span><span class="n">MoveResult</span><span class="p">.</span><span class="na">AccountNotFound</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="n">AccountNotFoundException</span><span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="na">id</span><span class="p">)</span>
-</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="w">        </span><span class="p">}</span>
-</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="p">}</span>
+<p>Primero, la fila <code>outbox</code> es una <strong>entidad JPA</strong> como cualquier otra. Va en <code>transfer/messaging</code> (es plomería de mensajería, no lógica de negocio):</p>
+<div class="language-kotlin highlight"><span class="filename">transfer/messaging/OutboxEvent.kt</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">package</span><span class="w"> </span><span class="nn">com.baqjug.wallet.transfer.messaging</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">import</span><span class="w"> </span><span class="nn">jakarta.persistence.Column</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">import</span><span class="w"> </span><span class="nn">jakarta.persistence.Entity</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="k">import</span><span class="w"> </span><span class="nn">jakarta.persistence.Id</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="k">import</span><span class="w"> </span><span class="nn">jakarta.persistence.Table</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">import</span><span class="w"> </span><span class="nn">java.time.Instant</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="k">import</span><span class="w"> </span><span class="nn">java.util.UUID</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="nd">@Entity</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="nd">@Table</span><span class="p">(</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;outbox&quot;</span><span class="p">)</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="kd">class</span><span class="w"> </span><span class="nc">OutboxEvent</span><span class="p">(</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="nd">@Column</span><span class="p">(</span><span class="n">nullable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">)</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">topic</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">    </span><span class="nd">@Column</span><span class="p">(</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;msg_key&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">nullable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">)</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">msgKey</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">    </span><span class="nd">@Column</span><span class="p">(</span><span class="n">nullable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">)</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">payload</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">    </span><span class="nd">@Column</span><span class="p">(</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;sent_at&quot;</span><span class="p">)</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="nv">sentAt</span><span class="p">:</span><span class="w"> </span><span class="n">Instant? </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">    </span><span class="nd">@Column</span><span class="p">(</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;created_at&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">nullable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">)</span>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">createdAt</span><span class="p">:</span><span class="w"> </span><span class="n">Instant</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Instant</span><span class="p">.</span><span class="na">now</span><span class="p">(),</span>
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">    </span><span class="nd">@Id</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">id</span><span class="p">:</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UUID</span><span class="p">.</span><span class="na">randomUUID</span><span class="p">()</span>
+</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Y su repositorio, con una consulta que trae solo lo que <strong>falta por enviar</strong>:</p>
+<div class="language-kotlin highlight"><span class="filename">transfer/messaging/OutboxRepository.kt</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">package</span><span class="w"> </span><span class="nn">com.baqjug.wallet.transfer.messaging</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.data.jpa.repository.JpaRepository</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">import</span><span class="w"> </span><span class="nn">java.util.UUID</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="kd">interface</span><span class="w"> </span><span class="nc">OutboxRepository</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">JpaRepository</span><span class="o">&lt;</span><span class="n">OutboxEvent</span><span class="p">,</span><span class="w"> </span><span class="n">UUID</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">findBySentAtIsNullOrderByCreatedAt</span><span class="p">():</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">OutboxEvent</span><span class="o">&gt;</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<div class="admonition abstract">
+<p class="admonition-title">Spring al paso: la consulta sale del nombre del método</p>
+<p><code>findBySentAtIsNullOrderByCreatedAt()</code> no la implementas: Spring Data la genera a partir del <strong>nombre</strong>. Léelo como frase: "los que tienen <code>sentAt</code> en null, ordenados por <code>createdAt</code>" — o sea, lo pendiente de publicar, del más viejo al más nuevo.</p>
+</div>
+<p>Ahora sí, mira <strong>qué cambió</strong> en <code>transfer</code> respecto a la Fase 6, y por qué:</p>
+<ul>
+<li><strong>Antes</strong> (Fase 6), en la rama <code>Success</code>, <code>transfer</code> publicaba directo al broker: <code>publisher.publish(evento)</code>. Dos sistemas —base y broker— sin una transacción que los cubra a ambos.</li>
+<li><strong>Ahora</strong>, en vez de publicar, <strong>guarda una fila en la tabla <code>outbox</code></strong> dentro de la <strong>misma transacción</strong> que mueve la plata. Por eso el método es <code>@Transactional</code>: mover el saldo y escribir el outbox se confirman <strong>juntos</strong> (o se deshacen juntos). Así el evento no se puede perder: si la transferencia quedó guardada, su fila de outbox también.</li>
+<li>El evento se guarda como <strong>texto JSON</strong> con <code>mapper.writeValueAsString(evento)</code>, porque la columna <code>payload</code> es <code>TEXT</code>. Ese <code>mapper</code> es un <code>ObjectMapper</code> de Jackson que inyectas en el constructor. Un detalle de versiones que importa: en Spring Boot 4 (que trae Jackson 3), el <code>ObjectMapper</code> <strong>clásico</strong> de Jackson 2 —el que necesitan tanto este outbox como el <code>JsonSerializer</code> de spring-kafka— <strong>no viene autoconfigurado</strong>, así que lo declaras tú como bean. Lo dejamos junto a la configuración de Kafka, más abajo.</li>
+</ul>
+<div class="language-kotlin highlight"><span class="filename">transfer/domain/TransferService.kt (con outbox)</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@Service</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">TransferService</span><span class="p">(</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">accountService</span><span class="p">:</span><span class="w"> </span><span class="n">AccountService</span><span class="p">,</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">outbox</span><span class="p">:</span><span class="w"> </span><span class="n">OutboxRepository</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">mapper</span><span class="p">:</span><span class="w"> </span><span class="n">ObjectMapper</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">    </span><span class="nd">@Transactional</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">transfer</span><span class="p">(</span><span class="n">request</span><span class="p">:</span><span class="w"> </span><span class="n">TransferRequest</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">        </span><span class="n">require</span><span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="na">fromId</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">toId</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s">&quot;No puedes transferir a la misma cuenta&quot;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">        </span><span class="k">when</span><span class="w"> </span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">accountService</span><span class="p">.</span><span class="na">moveMoney</span><span class="p">(</span><span class="n">request</span><span class="p">.</span><span class="na">fromId</span><span class="p">,</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">toId</span><span class="p">,</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">amount</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">            </span><span class="k">is</span><span class="w"> </span><span class="n">MoveResult</span><span class="p">.</span><span class="na">Success</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">                </span><span class="kd">val</span><span class="w"> </span><span class="nv">evento</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MovimientoRegistrado</span><span class="p">(</span><span class="n">fromId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">fromId</span><span class="p">,</span><span class="w"> </span><span class="n">toId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">toId</span><span class="p">,</span><span class="w"> </span><span class="n">amount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">request</span><span class="p">.</span><span class="na">amount</span><span class="p">)</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">                </span><span class="n">outbox</span><span class="p">.</span><span class="na">save</span><span class="p">(</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">                    </span><span class="n">OutboxEvent</span><span class="p">(</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">                        </span><span class="n">topic</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;wallet.movements&quot;</span><span class="p">,</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">                        </span><span class="n">msgKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">evento</span><span class="p">.</span><span class="na">fromId</span><span class="p">.</span><span class="na">toString</span><span class="p">(),</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">                        </span><span class="n">payload</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mapper</span><span class="p">.</span><span class="na">writeValueAsString</span><span class="p">(</span><span class="n">evento</span><span class="p">)</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">                    </span><span class="p">)</span>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">                </span><span class="p">)</span>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">            </span><span class="k">is</span><span class="w"> </span><span class="n">MoveResult</span><span class="p">.</span><span class="na">InsufficientFunds</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="n">InsufficientFundsException</span><span class="p">()</span>
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="w">            </span><span class="k">is</span><span class="w"> </span><span class="n">MoveResult</span><span class="p">.</span><span class="na">AccountNotFound</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="n">AccountNotFoundException</span><span class="p">(</span><span class="n">result</span><span class="p">.</span><span class="na">id</span><span class="p">)</span>
+</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="p">}</span>
 </span></code></pre></div>
 <p>Y un relay que corre aparte, lee lo no enviado y publica:</p>
-<div class="language-kotlin highlight"><span class="filename">transfer/messaging/OutboxRelay.kt</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@Component</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">OutboxRelay</span><span class="p">(</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">outbox</span><span class="p">:</span><span class="w"> </span><span class="n">OutboxRepository</span><span class="p">,</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">kafkaTemplate</span><span class="p">:</span><span class="w"> </span><span class="n">KafkaTemplate</span><span class="o">&lt;</span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kt">String</span><span class="o">&gt;</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nd">@Scheduled</span><span class="p">(</span><span class="n">fixedDelay</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">2000</span><span class="p">)</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nd">@Transactional</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">publicarPendientes</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">        </span><span class="n">outbox</span><span class="p">.</span><span class="na">findBySentAtIsNullOrderByCreatedAt</span><span class="p">().</span><span class="na">forEach</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fila</span><span class="w"> </span><span class="o">-&gt;</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">            </span><span class="n">kafkaTemplate</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">fila</span><span class="p">.</span><span class="na">topic</span><span class="p">,</span><span class="w"> </span><span class="n">fila</span><span class="p">.</span><span class="na">msgKey</span><span class="p">,</span><span class="w"> </span><span class="n">fila</span><span class="p">.</span><span class="na">payload</span><span class="p">)</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">            </span><span class="n">fila</span><span class="p">.</span><span class="na">sentAt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Instant</span><span class="p">.</span><span class="na">now</span><span class="p">()</span>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">        </span><span class="p">}</span>
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="p">}</span>
+<div class="language-kotlin highlight"><span class="filename">transfer/messaging/OutboxRelay.kt</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@Component</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">OutboxRelay</span><span class="p">(</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">outbox</span><span class="p">:</span><span class="w"> </span><span class="n">OutboxRepository</span><span class="p">,</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">kafkaTemplate</span><span class="p">:</span><span class="w"> </span><span class="n">KafkaTemplate</span><span class="o">&lt;</span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kt">Any</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">mapper</span><span class="p">:</span><span class="w"> </span><span class="n">ObjectMapper</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">    </span><span class="nd">@Scheduled</span><span class="p">(</span><span class="n">fixedDelay</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">2000</span><span class="p">)</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span><span class="nd">@Transactional</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">publicarPendientes</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">        </span><span class="n">outbox</span><span class="p">.</span><span class="na">findBySentAtIsNullOrderByCreatedAt</span><span class="p">().</span><span class="na">forEach</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fila</span><span class="w"> </span><span class="o">-&gt;</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">            </span><span class="c1">// El payload ya es JSON (texto). Lo reparseamos a árbol para que</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">            </span><span class="c1">// el JsonSerializer lo codifique UNA sola vez (ver el danger de abajo).</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">            </span><span class="n">kafkaTemplate</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">fila</span><span class="p">.</span><span class="na">topic</span><span class="p">,</span><span class="w"> </span><span class="n">fila</span><span class="p">.</span><span class="na">msgKey</span><span class="p">,</span><span class="w"> </span><span class="n">mapper</span><span class="p">.</span><span class="na">readTree</span><span class="p">(</span><span class="n">fila</span><span class="p">.</span><span class="na">payload</span><span class="p">))</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">            </span><span class="n">fila</span><span class="p">.</span><span class="na">sentAt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Instant</span><span class="p">.</span><span class="na">now</span><span class="p">()</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="p">}</span>
 </span></code></pre></div>
+<div class="admonition abstract">
+<p class="admonition-title">Spring al paso: qué hace el relay, línea por línea</p>
+<ul>
+<li><code>@Scheduled(fixedDelay = 2000)</code> — Spring llama este método <strong>solo, cada 2 segundos</strong>, en un hilo aparte. No lo invocas tú: corre en segundo plano. (Para que funcione, la app necesita <code>@EnableScheduling</code>, que agregamos justo abajo.)</li>
+<li><code>@Transactional</code> — envuelve el barrido en una transacción, para que marcar <code>sent_at</code> se confirme bien.</li>
+<li><code>findBySentAtIsNullOrderByCreatedAt()</code> — trae las filas <strong>pendientes</strong> (las que aún no tienen <code>sent_at</code>), de la más vieja a la más nueva.</li>
+<li><code>kafkaTemplate.send(topic, key, mapper.readTree(payload))</code> — publica cada fila al broker. Ojo con el <code>readTree</code>: el <code>payload</code> ya es texto JSON, y el <code>KafkaTemplate</code> de la app serializa el valor con <code>JsonSerializer</code> (el de la Fase 6). Si le pasaras el <code>String</code> tal cual, Jackson lo <strong>volvería a codificar</strong> y el consumidor no podría leerlo. Reparseándolo a árbol con <code>readTree</code>, se serializa <strong>una sola vez</strong>. El <code>key</code> (la cuenta de origen) mantiene el orden por cuenta.</li>
+<li><code>fila.sentAt = Instant.now()</code> — la marca como enviada. Como el método es <code>@Transactional</code> y la fila es una entidad JPA gestionada, Hibernate detecta el cambio y hace el <code>UPDATE</code> solo (<em>dirty checking</em>); no necesitas un <code>save</code>.</li>
+</ul>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Doble serialización: el bug silencioso del outbox</p>
+<p>Es fácil de introducir y difícil de ver. Guardaste el evento como <strong>texto JSON</strong> en la columna <code>payload</code>. Si el relay reenvía ese <code>String</code> tal cual por un <code>KafkaTemplate</code> con value-serializer <code>JsonSerializer</code> (el de la Fase 6), Jackson <strong>codifica el texto otra vez</strong>: en vez de <code>{"eventId":...}</code> publica <code>"{\"eventId\":...}"</code>, con comillas y escapes. El mensaje viaja, pero <strong>ningún</strong> <code>@KafkaListener</code> lo puede deserializar: agota los reintentos y cae a la DLQ en <strong>cada</strong> transferencia. La cura es reparsear el texto a árbol con <code>mapper.readTree(...)</code> antes de publicar, para que se serialice una sola vez.</p>
+</div>
+<p>Como el relay ahora publica un árbol JSON (no el objeto original), el mensaje ya no lleva el header con el tipo Java. Dile al consumidor de la Fase 7 que <strong>ignore ese header</strong> y asuma siempre <code>MovimientoRegistrado</code> —es el único evento que viaja por ese topic—:</p>
+<div class="language-yaml highlight"><span class="filename">src/main/resources/application.yaml (consumer, ajuste)</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">spring</span><span class="p">:</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">kafka</span><span class="p">:</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="nt">consumer</span><span class="p">:</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">      </span><span class="nt">properties</span><span class="p">:</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">        </span><span class="nt">spring.json.use.type.headers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">        </span><span class="nt">spring.json.value.default.type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">com.baqjug.wallet.movement.domain.MovimientoRegistrado</span>
+</span></code></pre></div>
+<p>Para que ese <code>@Scheduled</code> corra de verdad, la aplicación tiene que <strong>activar el scheduler</strong> con <code>@EnableScheduling</code>. Va en la clase principal:</p>
+<div class="language-kotlin highlight"><span class="filename">WalletApplication.kt</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nd">@SpringBootApplication</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nd">@EnableScheduling</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kd">class</span><span class="w"> </span><span class="nc">WalletApplication</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="kd">fun</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">args</span><span class="p">:</span><span class="w"> </span><span class="n">Array</span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span><span class="n">runApplication</span><span class="o">&lt;</span><span class="n">WalletApplication</span><span class="o">&gt;</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">}</span>
+</span></code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Sin <code>@EnableScheduling</code>, el outbox se queda mudo</p>
+<p>Es un olvido silencioso, de los que cuestan encontrar. Sin esa anotación, Spring nunca arranca el scheduler, así que <code>publicarPendientes()</code> <strong>no se ejecuta nunca</strong>: la fila se queda en <code>outbox</code> con <code>sent_at</code> en <code>NULL</code> para siempre, nada llega a Kafka, y como el consumidor no recibe eventos, <code>processed_events</code> sale vacío. La transferencia "parece" funcionar (el saldo se mueve), pero los eventos no viajan. Si ves el <code>sent_at</code> siempre en NULL, empieza por acá.</p>
+</div>
 <p>Todo el ciclo, de la transacción al broker, se ve así:</p>
 <p><img alt="Diagrama de secuencia del patrón outbox: TransferService mueve el saldo y guarda una fila en la tabla outbox dentro de una sola transacción en Postgres; un OutboxRelay, cada 2 segundos, lee las filas no enviadas con FOR UPDATE SKIP LOCKED, las publica en Redpanda y marca sent_at" src="../img/Img_5.png" /></p>
+<p>El diagrama, paso a paso:</p>
+<ol>
+<li><strong><code>TransferService</code> → Postgres (una sola transacción):</strong> mueve el saldo <strong>y</strong> guarda la fila en la tabla <code>outbox</code>, las dos cosas juntas. Si algo falla, se revierten ambas.</li>
+<li><strong><code>OutboxRelay</code> lee (cada 2 s):</strong> despierta por el <code>@Scheduled</code> y le pide a Postgres las filas no enviadas (<code>sent_at</code> en null). En producción, con <code>FOR UPDATE SKIP LOCKED</code> para que dos relays no tomen la misma.</li>
+<li><strong><code>OutboxRelay</code> → Redpanda:</strong> publica cada fila como evento en el topic.</li>
+<li><strong><code>OutboxRelay</code> → Postgres:</strong> marca la fila con <code>sent_at</code>, para no volver a publicarla.</li>
+</ol>
+<p>La clave: el paso 1 es transaccional (solo la base); del 2 al 4, el relay se encarga de que lo que quedó guardado <strong>llegue</strong> al broker, aunque haya reintentos por el camino.</p>
 <div class="admonition note">
 <p class="admonition-title">Por qué no lo metimos en el taller en vivo</p>
 <p>El outbox agrega una tabla, un relay con <code>@Scheduled</code> y serialización a mano. Para 60 minutos, habría tapado el concepto central (publicar y consumir) con plomería. Pero en algo con plata, el outbox no es opcional: es la diferencia entre "casi siempre avisa" y "siempre avisa".</p>
@@ -1046,30 +1245,69 @@
 <p>Una operación es idempotente si ejecutarla una vez o cinco veces deja el mismo resultado. Apagar una luz que ya está apagada no cambia nada: eso es idempotente. Queremos que "guardar este movimiento" se comporte igual.</p>
 </div>
 <p>La forma directa: darle un <code>id</code> único a cada evento y llevar registro de cuáles ya procesaste.</p>
-<div class="language-kotlin highlight"><span class="filename">movement/domain/MovimientoRegistrado.kt (con id)</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">MovimientoRegistrado</span><span class="p">(</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="hll"><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">eventId</span><span class="p">:</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UUID</span><span class="p">.</span><span class="na">randomUUID</span><span class="p">(),</span>
-</span></span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">fromId</span><span class="p">:</span><span class="w"> </span><span class="n">UUID</span><span class="p">,</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">toId</span><span class="p">:</span><span class="w"> </span><span class="n">UUID</span><span class="p">,</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">amount</span><span class="p">:</span><span class="w"> </span><span class="n">BigDecimal</span><span class="p">,</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">occurredAt</span><span class="p">:</span><span class="w"> </span><span class="n">Instant</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Instant</span><span class="p">.</span><span class="na">now</span><span class="p">()</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">)</span>
+<div class="language-kotlin highlight"><span class="filename">movement/domain/MovimientoRegistrado.kt (con id)</span><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">MovimientoRegistrado</span><span class="p">(</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="hll"><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">eventId</span><span class="p">:</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UUID</span><span class="p">.</span><span class="na">randomUUID</span><span class="p">(),</span>
+</span></span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">fromId</span><span class="p">:</span><span class="w"> </span><span class="n">UUID</span><span class="p">,</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">toId</span><span class="p">:</span><span class="w"> </span><span class="n">UUID</span><span class="p">,</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">amount</span><span class="p">:</span><span class="w"> </span><span class="n">BigDecimal</span><span class="p">,</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">occurredAt</span><span class="p">:</span><span class="w"> </span><span class="n">Instant</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Instant</span><span class="p">.</span><span class="na">now</span><span class="p">()</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="p">)</span>
 </span></code></pre></div>
-<div class="language-sql highlight"><span class="filename">db/migration/V4__create_processed_events.sql</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">processed_events</span><span class="w"> </span><span class="p">(</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="n">event_id</span><span class="w">     </span><span class="n">UUID</span><span class="w">        </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="n">processed_at</span><span class="w"> </span><span class="n">TIMESTAMPTZ</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">now</span><span class="p">(),</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="k">CONSTRAINT</span><span class="w"> </span><span class="n">pk_processed_events</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="p">(</span><span class="n">event_id</span><span class="p">)</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">);</span>
+<div class="admonition danger">
+<p class="admonition-title">Ojo: al agregar <code>eventId</code>, construye con nombres</p>
+<p>Metimos <code>eventId</code> como <strong>primer</strong> campo, con valor por defecto. Si en algún lado construyes el evento por <strong>posición</strong> —<code>MovimientoRegistrado(request.fromId, ...)</code>—, ahora ese primer argumento se iría a <code>eventId</code> y <strong>rompe</strong>. La regla: construye siempre con <strong>argumentos con nombre</strong> —<code>MovimientoRegistrado(fromId = ..., toId = ..., amount = ...)</code>— y deja que <code>eventId</code> se autogenere. Lo mismo si mañana agregas otro campo: con nombres, nada se corre de lugar. (Por eso el <code>TransferService</code> de la Fase 6 y el outbox de arriba ya construyen con nombres.)</p>
+</div>
+<div class="language-sql highlight"><span class="filename">db/migration/V4__create_processed_events.sql</span><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">processed_events</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">    </span><span class="n">event_id</span><span class="w">     </span><span class="n">UUID</span><span class="w">        </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="n">processed_at</span><span class="w"> </span><span class="n">TIMESTAMPTZ</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">now</span><span class="p">(),</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="k">CONSTRAINT</span><span class="w"> </span><span class="n">pk_processed_events</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="p">(</span><span class="n">event_id</span><span class="p">)</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="p">);</span>
 </span></code></pre></div>
-<p>El listener chequea, procesa y marca, todo en una transacción:</p>
-<div class="language-kotlin highlight"><span class="filename">movement/messaging/MovimientoPersistenceListener.kt (idempotente)</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nd">@KafkaListener</span><span class="p">(</span><span class="n">topics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">[</span><span class="s">&quot;wallet.movements&quot;</span><span class="o">]</span><span class="p">,</span><span class="w"> </span><span class="n">groupId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;movement&quot;</span><span class="p">)</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nd">@Transactional</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kd">fun</span><span class="w"> </span><span class="nf">onMovimiento</span><span class="p">(</span><span class="n">evento</span><span class="p">:</span><span class="w"> </span><span class="n">MovimientoRegistrado</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">processedRepo</span><span class="p">.</span><span class="na">existsById</span><span class="p">(</span><span class="n">evento</span><span class="p">.</span><span class="na">eventId</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="c1">// ya lo procesé, lo ignoro</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="n">movementService</span><span class="p">.</span><span class="na">record</span><span class="p">(</span><span class="n">evento</span><span class="p">.</span><span class="na">fromId</span><span class="p">,</span><span class="w"> </span><span class="n">evento</span><span class="p">.</span><span class="na">toId</span><span class="p">,</span><span class="w"> </span><span class="n">evento</span><span class="p">.</span><span class="na">amount</span><span class="p">)</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="n">processedRepo</span><span class="p">.</span><span class="na">save</span><span class="p">(</span><span class="n">ProcessedEvent</span><span class="p">(</span><span class="n">evento</span><span class="p">.</span><span class="na">eventId</span><span class="p">))</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">}</span>
+<p>Necesitas dos piezas nuevas: la <strong>entidad</strong> que marca lo ya procesado y su <strong>repositorio</strong> (mapean la tabla <code>processed_events</code>, en <code>movement/messaging</code>):</p>
+<div class="language-kotlin highlight"><span class="filename">movement/messaging/ProcessedEvent.kt</span><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">package</span><span class="w"> </span><span class="nn">com.baqjug.wallet.movement.messaging</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">import</span><span class="w"> </span><span class="nn">jakarta.persistence.Column</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">import</span><span class="w"> </span><span class="nn">jakarta.persistence.Entity</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="k">import</span><span class="w"> </span><span class="nn">jakarta.persistence.Id</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="k">import</span><span class="w"> </span><span class="nn">jakarta.persistence.Table</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="k">import</span><span class="w"> </span><span class="nn">java.time.Instant</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="k">import</span><span class="w"> </span><span class="nn">java.util.UUID</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="nd">@Entity</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="nd">@Table</span><span class="p">(</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;processed_events&quot;</span><span class="p">)</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="kd">class</span><span class="w"> </span><span class="nc">ProcessedEvent</span><span class="p">(</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="w">    </span><span class="nd">@Id</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="w">    </span><span class="nd">@Column</span><span class="p">(</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;event_id&quot;</span><span class="p">)</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">eventId</span><span class="p">:</span><span class="w"> </span><span class="n">UUID</span><span class="p">,</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="w">    </span><span class="nd">@Column</span><span class="p">(</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;processed_at&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">nullable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">)</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">processedAt</span><span class="p">:</span><span class="w"> </span><span class="n">Instant</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Instant</span><span class="p">.</span><span class="na">now</span><span class="p">()</span>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="p">)</span>
+</span></code></pre></div>
+<div class="language-kotlin highlight"><span class="filename">movement/messaging/ProcessedEventRepository.kt</span><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">package</span><span class="w"> </span><span class="nn">com.baqjug.wallet.movement.messaging</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.data.jpa.repository.JpaRepository</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="k">import</span><span class="w"> </span><span class="nn">java.util.UUID</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="kd">interface</span><span class="w"> </span><span class="nc">ProcessedEventRepository</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">JpaRepository</span><span class="o">&lt;</span><span class="n">ProcessedEvent</span><span class="p">,</span><span class="w"> </span><span class="n">UUID</span><span class="o">&gt;</span>
+</span></code></pre></div>
+<p>Y ahora sí el listener, con <code>movementService</code> y <code>processedRepo</code> inyectados, chequea, procesa y marca, todo en una transacción:</p>
+<div class="language-kotlin highlight"><span class="filename">movement/messaging/MovimientoPersistenceListener.kt (idempotente)</span><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nd">@Component</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">MovimientoPersistenceListener</span><span class="p">(</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">movementService</span><span class="p">:</span><span class="w"> </span><span class="n">MovementService</span><span class="p">,</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">processedRepo</span><span class="p">:</span><span class="w"> </span><span class="n">ProcessedEventRepository</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span><span class="nd">@KafkaListener</span><span class="p">(</span><span class="n">topics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">[</span><span class="s">&quot;wallet.movements&quot;</span><span class="o">]</span><span class="p">,</span><span class="w"> </span><span class="n">groupId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;movement&quot;</span><span class="p">)</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">    </span><span class="nd">@Transactional</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">onMovimiento</span><span class="p">(</span><span class="n">evento</span><span class="p">:</span><span class="w"> </span><span class="n">MovimientoRegistrado</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">processedRepo</span><span class="p">.</span><span class="na">existsById</span><span class="p">(</span><span class="n">evento</span><span class="p">.</span><span class="na">eventId</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="c1">// ya lo procesé, lo ignoro</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">        </span><span class="n">movementService</span><span class="p">.</span><span class="na">record</span><span class="p">(</span><span class="n">evento</span><span class="p">.</span><span class="na">fromId</span><span class="p">,</span><span class="w"> </span><span class="n">evento</span><span class="p">.</span><span class="na">toId</span><span class="p">,</span><span class="w"> </span><span class="n">evento</span><span class="p">.</span><span class="na">amount</span><span class="p">)</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="w">        </span><span class="n">processedRepo</span><span class="p">.</span><span class="na">save</span><span class="p">(</span><span class="n">ProcessedEvent</span><span class="p">(</span><span class="n">evento</span><span class="p">.</span><span class="na">eventId</span><span class="p">))</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="p">}</span>
 </span></code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Por qué en la misma transacción</p>
@@ -1079,27 +1317,139 @@
 <p>¿Qué pasa cuando un evento revienta el consumidor una y otra vez? Un JSON corrupto, un dato imposible. Si lo reintentas para siempre, ese evento tranca la partición y bloquea a los que vienen detrás.</p>
 <div class="admonition abstract">
 <p class="admonition-title">Concepto al paso: dead letter queue</p>
-<p>Una DLQ (cola de mensajes muertos) es un topic aparte a donde mandas los eventos que fallaron demasiadas veces. En vez de reintentar infinito o botar el evento, lo apartas para revisarlo después, y el consumidor sigue con el resto. En Kafka la convención es un topic con sufijo <code>.DLT</code> (dead letter topic).</p>
+<p>Una DLQ (cola de mensajes muertos) es un topic aparte a donde mandas los eventos que fallaron demasiadas veces. En vez de reintentar infinito o botar el evento, lo apartas para revisarlo después, y el consumidor sigue con el resto. Spring publica ahí solo: toma el topic de origen y le pega el sufijo <strong><code>-dlt</code></strong> por defecto, así que <code>wallet.movements</code> va a dar a <code>wallet.movements-dlt</code>. (Ojo: es <code>-dlt</code>, no <code>-dlt</code>; si tu listener escucha el nombre equivocado, nunca verás los muertos llegar.)</p>
 </div>
-<p>Spring for Kafka lo hace con un bean. Reintenta unas cuantas veces y, si sigue fallando, publica el evento al <code>.DLT</code>:</p>
-<div class="language-kotlin highlight"><span class="filename">config/KafkaErrorConfig.kt</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nd">@Configuration</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">KafkaErrorConfig</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="nd">@Bean</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">errorHandler</span><span class="p">(</span><span class="n">kafkaTemplate</span><span class="p">:</span><span class="w"> </span><span class="n">KafkaTemplate</span><span class="o">&lt;</span><span class="kt">Any</span><span class="p">,</span><span class="w"> </span><span class="kt">Any</span><span class="o">&gt;</span><span class="p">):</span><span class="w"> </span><span class="n">DefaultErrorHandler</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">        </span><span class="c1">// Publica a &quot;wallet.movements.DLT&quot; tras agotar los reintentos.</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">        </span><span class="kd">val</span><span class="w"> </span><span class="nv">recoverer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DeadLetterPublishingRecoverer</span><span class="p">(</span><span class="n">kafkaTemplate</span><span class="p">)</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">        </span><span class="c1">// 3 reintentos, esperando 1 segundo entre cada uno.</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">        </span><span class="kd">val</span><span class="w"> </span><span class="nv">backOff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FixedBackOff</span><span class="p">(</span><span class="m">1000L</span><span class="p">,</span><span class="w"> </span><span class="m">3L</span><span class="p">)</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">DefaultErrorHandler</span><span class="p">(</span><span class="n">recoverer</span><span class="p">,</span><span class="w"> </span><span class="n">backOff</span><span class="p">)</span>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="p">}</span>
+<p>Spring for Kafka lo hace con un bean. Reintenta unas cuantas veces y, si sigue fallando, publica el evento al <code>-dlt</code>:</p>
+<div class="language-kotlin highlight"><span class="filename">config/KafkaErrorConfig.kt</span><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">import</span><span class="w"> </span><span class="nn">com.fasterxml.jackson.databind.ObjectMapper</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="c1">// ...demás imports</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nd">@Configuration</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="kd">class</span><span class="w"> </span><span class="nc">KafkaErrorConfig</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">    </span><span class="c1">// Spring Boot 4 (Jackson 3) no autoconfigura este ObjectMapper clásico (Jackson 2);</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">    </span><span class="c1">// lo necesitan el payload del outbox (TransferService) y el JsonSerializer de</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">    </span><span class="c1">// spring-kafka, que aún usan Jackson 2.</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">    </span><span class="nd">@Bean</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">objectMapper</span><span class="p">():</span><span class="w"> </span><span class="n">ObjectMapper</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ObjectMapper</span><span class="p">().</span><span class="na">findAndRegisterModules</span><span class="p">()</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="w">    </span><span class="nd">@Bean</span>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">errorHandler</span><span class="p">(</span><span class="n">kafkaTemplate</span><span class="p">:</span><span class="w"> </span><span class="n">KafkaTemplate</span><span class="o">&lt;</span><span class="kt">Any</span><span class="p">,</span><span class="w"> </span><span class="kt">Any</span><span class="o">&gt;</span><span class="p">):</span><span class="w"> </span><span class="n">DefaultErrorHandler</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="w">        </span><span class="c1">// Publica a &quot;wallet.movements-dlt&quot; tras agotar los reintentos.</span>
+</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="w">        </span><span class="kd">val</span><span class="w"> </span><span class="nv">recoverer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DeadLetterPublishingRecoverer</span><span class="p">(</span><span class="n">kafkaTemplate</span><span class="p">)</span>
+</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="w">        </span><span class="c1">// 3 reintentos, esperando 1 segundo entre cada uno.</span>
+</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="w">        </span><span class="kd">val</span><span class="w"> </span><span class="nv">backOff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FixedBackOff</span><span class="p">(</span><span class="m">1000L</span><span class="p">,</span><span class="w"> </span><span class="m">3L</span><span class="p">)</span>
+</span><span id="__span-12-19"><a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">DefaultErrorHandler</span><span class="p">(</span><span class="n">recoverer</span><span class="p">,</span><span class="w"> </span><span class="n">backOff</span><span class="p">)</span>
+</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="p">}</span>
 </span></code></pre></div>
 <div class="admonition abstract">
-<p class="admonition-title">Spring al paso: cómo entra este bean solo</p>
-<p>Spring Boot detecta que declaraste un <code>DefaultErrorHandler</code> y se lo conecta a los <code>@KafkaListener</code> sin que hagas nada más. A partir de ahí, cualquier excepción en un listener pasa por esta política: reintenta con el backoff, y al agotarse manda el evento al <code>.DLT</code>. Después conectas otro consumidor a ese <code>.DLT</code> para alertar o inspeccionar.</p>
+<p class="admonition-title">Spring al paso: por qué declaras tú el <code>ObjectMapper</code></p>
+<p>En Spring Boot 4 la autoconfiguración de Jackson pasó a <strong>Jackson 3</strong>. Pero el <code>ObjectMapper</code> de <code>com.fasterxml.jackson.databind</code> (Jackson <strong>2</strong>) —el que usan el outbox y el <code>JsonSerializer</code>/<code>JsonDeserializer</code> de spring-kafka— ya no queda registrado solo. Al declararlo como bean, Spring lo inyecta donde se pida (por ejemplo, en el constructor del <code>TransferService</code>). <code>findAndRegisterModules()</code> engancha los módulos que tengas en el classpath, entre ellos el <code>jackson-datatype-jsr310</code> de la Fase 7 —así el <code>Instant</code> del evento se serializa bien—.</p>
 </div>
+<div class="admonition abstract">
+<p class="admonition-title">Spring al paso: cómo entra este bean solo</p>
+<p>Spring Boot detecta que declaraste un <code>DefaultErrorHandler</code> y se lo conecta a los <code>@KafkaListener</code> sin que hagas nada más. A partir de ahí, cualquier excepción en un listener pasa por esta política: reintenta con el backoff, y al agotarse manda el evento al <code>-dlt</code>. Después conectas otro consumidor a ese <code>-dlt</code> para alertar o inspeccionar.</p>
+</div>
+<h3 id="como-verlo-en-una-demo-sin-slack">Cómo verlo en una demo (sin Slack)<a class="headerlink" href="#como-verlo-en-una-demo-sin-slack" title="Permanent link">&para;</a></h3>
+<p>Para mostrar la DLQ en vivo tienes dos caminos, y ninguno necesita Slack ni infraestructura pesada:</p>
+<ul>
+<li><strong>El más simple, en la consola</strong>: un <code>@KafkaListener</code> extra suscrito al <code>-dlt</code> que solo <strong>loguea</strong> lo que llega. Mandas un evento "envenenado" (un JSON corrupto o un dato imposible que haga fallar al consumidor de <code>movement</code>), se agotan los reintentos, y ves el mensaje muerto aparecer en la consola.</li>
+<li><strong>El más visual, sin código extra</strong>: como ya usas <strong>Redpanda</strong>, ábrete su panel — al lado de <code>wallet.movements</code> va a aparecer el topic <strong><code>wallet.movements-dlt</code></strong> llenándose con los que fallaron. Señalas ahí y se explica solo. (Si corres el broker local con Docker, una UI como <strong>Redpanda Console</strong>, <strong>AKHQ</strong> o <strong>Kafdrop</strong> hace lo mismo en el navegador.)</li>
+</ul>
+<p>El listener de demo:</p>
+<div class="language-kotlin highlight"><span class="filename">notification/messaging/DeadLetterListener.kt (solo para la demo)</span><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">package</span><span class="w"> </span><span class="nn">com.baqjug.wallet.notification.messaging</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.apache.kafka.clients.consumer.ConsumerRecord</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.slf4j.LoggerFactory</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.kafka.annotation.KafkaListener</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.stereotype.Component</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="nd">@Component</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="kd">class</span><span class="w"> </span><span class="nc">DeadLetterListener</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">log</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LoggerFactory</span><span class="p">.</span><span class="na">getLogger</span><span class="p">(</span><span class="n">javaClass</span><span class="p">)</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="w">    </span><span class="nd">@KafkaListener</span><span class="p">(</span><span class="n">topics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">[</span><span class="s">&quot;wallet.movements-dlt&quot;</span><span class="o">]</span><span class="p">,</span><span class="w"> </span><span class="n">groupId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;dlt-demo&quot;</span><span class="p">)</span>
+</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">onDead</span><span class="p">(</span><span class="n">record</span><span class="p">:</span><span class="w"> </span><span class="n">ConsumerRecord</span><span class="o">&lt;</span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kt">String</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="na">warn</span><span class="p">(</span><span class="s">&quot;💀 Mensaje muerto en el DLT: key={} value={}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">record</span><span class="p">.</span><span class="na">key</span><span class="p">(),</span><span class="w"> </span><span class="n">record</span><span class="p">.</span><span class="na">value</span><span class="p">())</span>
+</span><span id="__span-13-15"><a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-13-16"><a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>El guion de la demo: mandas el evento envenenado, el consumidor de <code>movement</code> falla 3 veces (el <code>FixedBackOff</code>), y el evento aparece en <code>wallet.movements-dlt</code> —en tu consola por el <code>DeadLetterListener</code>, o en el panel de Redpanda—. Eso es justo lo que quieres mostrar: un mensaje malo no tranca la cola, se aparta y los demás siguen.</p>
 <hr />
+<h2 id="probar-los-escenarios">Probar los escenarios<a class="headerlink" href="#probar-los-escenarios" title="Permanent link">&para;</a></h2>
+<p>Para ejercitar todo esto sin adivinar, deja un archivo <code>test.http</code> en el proyecto: IntelliJ lo corre con el ▶️ al lado de cada request, y también lo puedes importar a Postman.</p>
+<div class="language-http highlight"><span class="filename">test.http</span><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="err">### 1. Consultar el saldo de Elena</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="err">GET http://localhost:8080/api/accounts/11111111-1111-1111-1111-111111111111</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="err">### 2. Transferir (dispara el evento: outbox -&gt; relay -&gt; consumidores)</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="err">POST http://localhost:8080/api/transfers</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="err">Content-Type: application/json</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="err">{</span>
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="err">  &quot;fromId&quot;: &quot;11111111-1111-1111-1111-111111111111&quot;,</span>
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="err">  &quot;toId&quot;: &quot;22222222-2222-2222-2222-222222222222&quot;,</span>
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="err">  &quot;amount&quot;: 15000.00</span>
+</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="err">}</span>
+</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>
+</span><span id="__span-14-14"><a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="err">### 3. Consultar el saldo de Geovanny (debió subir)</span>
+</span><span id="__span-14-15"><a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="err">GET http://localhost:8080/api/accounts/22222222-2222-2222-2222-222222222222</span>
+</span></code></pre></div>
+<h3 id="verificar-en-la-base-de-datos">Verificar en la base de datos<a class="headerlink" href="#verificar-en-la-base-de-datos" title="Permanent link">&para;</a></h3>
+<p>Abre el <strong>SQL Editor</strong> de Supabase (o cualquier cliente Postgres) y corre estas consultas para comprobar, con tus ojos, que todo pasó de verdad:</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1">-- Saldos actuales: Elena debió bajar, Geovanny subir.</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="k">owner</span><span class="p">,</span><span class="w"> </span><span class="n">balance</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">accounts</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">owner</span><span class="p">;</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="c1">-- El movimiento quedó registrado (uno por transferencia).</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">from_id</span><span class="p">,</span><span class="w"> </span><span class="n">to_id</span><span class="p">,</span><span class="w"> </span><span class="n">amount</span><span class="p">,</span><span class="w"> </span><span class="n">occurred_at</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="k">FROM</span><span class="w"> </span><span class="n">movements</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">occurred_at</span><span class="w"> </span><span class="k">DESC</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="c1">-- Outbox: la fila del evento. Al principio con sent_at en NULL; un par</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="c1">-- de segundos después el relay la marca (ya la publicó al broker).</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">topic</span><span class="p">,</span><span class="w"> </span><span class="n">msg_key</span><span class="p">,</span><span class="w"> </span><span class="n">sent_at</span><span class="p">,</span><span class="w"> </span><span class="n">created_at</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="k">FROM</span><span class="w"> </span><span class="n">outbox</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">created_at</span><span class="w"> </span><span class="k">DESC</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>
+</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="c1">-- ¿Queda algo sin publicar? (debería bajar a 0 rápido)</span>
+</span><span id="__span-15-14"><a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">pendientes</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">outbox</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">sent_at</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NULL</span><span class="p">;</span>
+</span><span id="__span-15-15"><a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a>
+</span><span id="__span-15-16"><a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="c1">-- Idempotencia: los eventos que el consumidor ya procesó.</span>
+</span><span id="__span-15-17"><a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">event_id</span><span class="p">,</span><span class="w"> </span><span class="n">processed_at</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">processed_events</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">processed_at</span><span class="w"> </span><span class="k">DESC</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+</span></code></pre></div>
+<ul>
+<li><strong>Outbox</strong> — tras el <code>POST</code>, la fila aparece en <code>outbox</code> y su <code>sent_at</code> se llena en segundos; en <code>movements</code> ves el registro y en Mailpit el correo.</li>
+<li><strong>Idempotencia</strong> — para forzar una reentrega, <strong>reinicia la app</strong> (con <code>auto-offset-reset: earliest</code> el grupo vuelve a leer los eventos). El evento llega otra vez, pero <strong>no</strong> se duplica. Compruébalo:</li>
+</ul>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1">-- Si sale alguna fila, hubo duplicado. No debería salir ninguna.</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">from_id</span><span class="p">,</span><span class="w"> </span><span class="n">to_id</span><span class="p">,</span><span class="w"> </span><span class="n">amount</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="k">FROM</span><span class="w"> </span><span class="n">movements</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">from_id</span><span class="p">,</span><span class="w"> </span><span class="n">to_id</span><span class="p">,</span><span class="w"> </span><span class="n">amount</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="k">HAVING</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+</span></code></pre></div>
+<p>El <code>eventId</code> ya estaba en <code>processed_events</code>, así que el listener lo ignoró y no guardó de nuevo.</p>
+<h3 id="probar-la-dlq">Probar la DLQ<a class="headerlink" href="#probar-la-dlq" title="Permanent link">&para;</a></h3>
+<p>La DLQ solo se llena cuando el consumidor <strong>falla</strong> con un mensaje una y otra vez. Como el endpoint valida los datos (no te deja mandar un evento malo), el mensaje "envenenado" hay que meterlo <strong>directo al topic</strong>. Dos caminos:</p>
+<p><strong>Opción A — que el listener falle a propósito (la más confiable para una demo).</strong> En el listener de <code>movement</code>, agrega temporalmente un centinela:</p>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">evento</span><span class="p">.</span><span class="na">amount</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">BigDecimal</span><span class="p">.</span><span class="na">ZERO</span><span class="p">)</span><span class="w"> </span><span class="k">throw</span><span class="w"> </span><span class="n">IllegalStateException</span><span class="p">(</span><span class="s">&quot;evento envenenado para la demo&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<p>y produce un evento con monto negativo directo al topic (por eso <code>rpk</code>, no el endpoint):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;{&quot;eventId&quot;:&quot;00000000-0000-0000-0000-000000000000&quot;,&quot;fromId&quot;:&quot;11111111-1111-1111-1111-111111111111&quot;,&quot;toId&quot;:&quot;22222222-2222-2222-2222-222222222222&quot;,&quot;amount&quot;:-1,&quot;occurredAt&quot;:&quot;2026-01-01T00:00:00Z&quot;}&#39;</span><span class="w">   </span><span class="p">|</span><span class="w"> </span>rpk<span class="w"> </span>topic<span class="w"> </span>produce<span class="w"> </span>wallet.movements<span class="w"> </span>--key<span class="w"> </span><span class="m">11111111</span>-1111-1111-1111-111111111111
+</span></code></pre></div>
+<p>El listener lanza, el <code>DefaultErrorHandler</code> reintenta 3 veces (el <code>FixedBackOff</code>) y, agotados los intentos, el <code>DeadLetterPublishingRecoverer</code> publica el evento en <strong><code>wallet.movements-dlt</code></strong>.</p>
+<p><strong>Opción B — JSON corrupto.</strong> Si mandas un JSON malformado, el error es de <strong>deserialización</strong> y ocurre <strong>antes</strong> de entrar al listener, así que el <code>DefaultErrorHandler</code> no lo atrapa por sí solo: el mensaje queda en bucle y tranca la partición. La cura es envolver los deserializadores del consumidor en un <code>ErrorHandlingDeserializer</code>, que convierte el fallo de deserialización en una excepción normal —y esa sí la enruta el <code>DefaultErrorHandler</code> a la DLQ tras los reintentos—:</p>
+<div class="language-yaml highlight"><span class="filename">src/main/resources/application.yaml (consumer, robusto ante JSON corrupto)</span><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nt">spring</span><span class="p">:</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span><span class="nt">kafka</span><span class="p">:</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">    </span><span class="nt">consumer</span><span class="p">:</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">      </span><span class="nt">key-deserializer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">org.springframework.kafka.support.serializer.ErrorHandlingDeserializer</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">      </span><span class="nt">value-deserializer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">org.springframework.kafka.support.serializer.ErrorHandlingDeserializer</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">      </span><span class="nt">properties</span><span class="p">:</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="w">        </span><span class="nt">spring.deserializer.key.delegate.class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">org.apache.kafka.common.serialization.StringDeserializer</span>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="w">        </span><span class="nt">spring.deserializer.value.delegate.class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">org.springframework.kafka.support.serializer.JsonDeserializer</span>
+</span></code></pre></div>
+<p>El <code>ErrorHandlingDeserializer</code> no deserializa él mismo: envuelve al deserializador <strong>real</strong> (el <code>delegate</code>) y, si este lanza, captura el error en vez de tumbar el consumidor. Con esto, tanto un dato imposible (Opción A) como un JSON corrupto terminan en la DLQ, no en un bucle.</p>
+<p><strong>Cómo verlo llegar al <code>-dlt</code>:</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1"># Consumir el topic de mensajes muertos</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>rpk<span class="w"> </span>topic<span class="w"> </span>consume<span class="w"> </span>wallet.movements-dlt
+</span></code></pre></div>
+<p>También aparece en el <strong>panel de Redpanda</strong> (el topic <code>wallet.movements-dlt</code> con el evento dentro), o en el log si tienes el <code>DeadLetterListener</code> de arriba. Eso confirma lo que buscabas: un mensaje malo no tranca la cola —se aparta— y los demás siguen su curso.</p>
 <h2 id="lo-que-quedo-por-fuera-en-una-linea-cada-uno">Lo que quedó por fuera, en una línea cada uno<a class="headerlink" href="#lo-que-quedo-por-fuera-en-una-linea-cada-uno" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Concurrencia sobre la misma cuenta.</strong> Dos transferencias en paralelo sobre la misma cuenta pueden pisarse. Se resuelve con bloqueo optimista: una columna <code>@Version</code> en <code>Account</code> hace que la segunda transacción en confirmar falle y se reintente con el saldo fresco.</li>
@@ -1108,7 +1458,7 @@
 </ul>
 <h2 id="lo-que-te-llevas">Lo que te llevas<a class="headerlink" href="#lo-que-te-llevas" title="Permanent link">&para;</a></h2>
 <p>Construiste una wallet que mueve plata de forma transaccional, la expusiste por REST, y desacoplaste el registro y la notificación con eventos sobre Redpanda, con consumidores independientes que reaccionan sin conocerse. Y ahora sabes qué le falta para producción, con código, no con handwaving: outbox para no perder eventos, idempotencia para no duplicarlos, y DLQ para no atascarte con uno malo.</p>
-<p>¿Quieres exprimir más el lado Kotlin? En la <a href="../fase-09-coroutines/">Fase 9</a> —avanzada y opcional— tomamos el consumidor bloqueante de la Fase 7 y lo llevamos a <strong>coroutines</strong>, para cuando un consumidor tiene que llamar a varios servicios externos sin bloquear un hilo por cada espera.</p>
+<p>¿Quieres exprimir más el lado Kotlin? En la <a href="../fase-09-coroutines/">Fase 9</a>, tomamos el consumidor bloqueante de la Fase 7 y lo llevamos a <strong>coroutines</strong>, para cuando un consumidor tiene que llamar a varios servicios externos sin bloquear un hilo por cada espera.</p>
 <p>Revisa las <a href="../referencias/">Referencias</a> para seguir por tu cuenta.</p>
 
 

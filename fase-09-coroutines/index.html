@@ -29,7 +29,7 @@
     
     
       
-        <title>Fase 9 · Coroutines (avanzada) - Una wallet en Kotlin: de un endpoint REST a eventos</title>
+        <title>Fase 9 · Coroutines - Una wallet en Kotlin: de un endpoint REST a eventos</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#fase-9-coroutines-avanzada-y-opcional" class="md-skip">
+        <a href="#fase-9-coroutines" class="md-skip">
           Saltar a contenido
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Fase 9 · Coroutines (avanzada)
+              Fase 9 · Coroutines
             
           </span>
         </div>
@@ -278,6 +278,25 @@
         </a>
       </li>
     
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../configuracion/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Guía de Configuración
+
+      </a>
+    </li>
   
 
       
@@ -761,7 +780,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 9 · Coroutines (avanzada)
+    Fase 9 · Coroutines
   
 
     
@@ -779,7 +798,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 9 · Coroutines (avanzada)
+    Fase 9 · Coroutines
   
 
     
@@ -849,13 +868,41 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#el-listener-tambien-suspendido" class="md-nav__link">
+  <a href="#correr-esto-100-local-servicios-externos-de-mentira" class="md-nav__link">
     <span class="md-ellipsis">
       
-        El listener, también suspendido
+        Correr esto 100% local: servicios externos de mentira
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#el-listener-uno-nuevo-sin-tocar-el-que-ya-anda" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        El listener: uno nuevo, sin tocar el que ya anda
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="El listener: uno nuevo, sin tocar el que ya anda">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#verlo-funcionar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verlo funcionar
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -954,7 +1001,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 10 · Despliegue con GitHub Actions
+    Fase 10 · Despliegue a la nube
   
 
     
@@ -971,6 +1018,33 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuracion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guía de Configuración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1022,8 +1096,8 @@
   
 
 
-<h1 id="fase-9-coroutines-avanzada-y-opcional">Fase 9 · Coroutines (avanzada y opcional)<a class="headerlink" href="#fase-9-coroutines-avanzada-y-opcional" title="Permanent link">&para;</a></h1>
-<p><strong>Rama</strong>: opcional. No hace falta para que la wallet funcione; es un paso extra para quien quiera exprimir el lado Kotlin.
+<h1 id="fase-9-coroutines">Fase 9 · Coroutines<a class="headerlink" href="#fase-9-coroutines" title="Permanent link">&para;</a></h1>
+<p><strong>Rama</strong>: No hace falta para que la wallet funcione; es un paso extra para quien quiera exprimir el lado Kotlin.
 <strong>Lo que vas a lograr</strong>: entender qué es una coroutine y una función suspendida, y llevar el consumidor bloqueante de la Fase 7 a una versión que llama a varios servicios externos <strong>en paralelo</strong>, sin bloquear un hilo por cada espera.</p>
 <div class="admonition warning">
 <p class="admonition-title">Esta fase es avanzada y opcional</p>
@@ -1114,6 +1188,14 @@
 </div>
 <p>En el tiempo, las tres llamadas se solapan en vez de hacer fila:</p>
 <p><img alt="Diagrama de secuencia con coroutines: el listener suspendido llama a NotificationService, que dentro de un coroutineScope lanza en paralelo con async las llamadas a EmailClient, PushClient y AntifraudClient; con awaitAll espera las tres, que juntas tardan ~200 ms en vez de 600 ms" src="../img/Img_6.png" /></p>
+<p>El diagrama, paso a paso:</p>
+<ol>
+<li><strong>Listener suspendido → <code>NotificationService.notificar</code>:</strong> llega el evento y arranca la coroutine.</li>
+<li><strong>Dentro de <code>coroutineScope</code>, tres <code>async</code>:</strong> se lanzan <strong>a la vez</strong> las llamadas a <code>EmailClient</code>, <code>PushClient</code> y <code>AntifraudClient</code>. No hacen fila.</li>
+<li><strong>Cada cliente suspende</strong> mientras espera su respuesta de red, <strong>sin bloquear</strong> ningún hilo.</li>
+<li><strong><code>awaitAll</code> junta las tres:</strong> el scope termina cuando respondió la última.</li>
+</ol>
+<p>Por eso el total es ~200 ms (lo que tardó la más lenta), no ~600. Y si una falla, el <code>coroutineScope</code> cancela a las otras dos por su cuenta: eso es concurrencia estructurada.</p>
 <p>Los clientes son, a su vez, funciones suspendidas. Con <code>WebClient</code> (el cliente HTTP reactivo de Spring) y sus extensiones de Kotlin, la llamada por red se vuelve suspendida con <code>awaitBody</code>:</p>
 <div class="language-kotlin highlight"><span class="filename">notification/domain/EmailClient.kt</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@Component</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">EmailClient</span><span class="p">(</span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">webClient</span><span class="p">:</span><span class="w"> </span><span class="n">WebClient</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -1126,44 +1208,158 @@
 </span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="p">}</span>
 </span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">}</span>
 </span></code></pre></div>
+<p>Los otros dos son <strong>idénticos</strong>, solo cambia el <code>.uri(...)</code> (y <code>antifraud</code> expone <code>revisar</code> en vez de <code>enviar</code>, por semántica):</p>
+<div class="language-kotlin highlight"><span class="filename">notification/domain/PushClient.kt</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@Component</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">PushClient</span><span class="p">(</span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">webClient</span><span class="p">:</span><span class="w"> </span><span class="n">WebClient</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="kd">suspend</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">enviar</span><span class="p">(</span><span class="n">evento</span><span class="p">:</span><span class="w"> </span><span class="n">MovimientoRegistrado</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">        </span><span class="n">webClient</span><span class="p">.</span><span class="na">post</span><span class="p">()</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">            </span><span class="p">.</span><span class="na">uri</span><span class="p">(</span><span class="s">&quot;/push&quot;</span><span class="p">)</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">            </span><span class="p">.</span><span class="na">bodyValue</span><span class="p">(</span><span class="n">evento</span><span class="p">)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">            </span><span class="p">.</span><span class="na">retrieve</span><span class="p">()</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">            </span><span class="p">.</span><span class="na">awaitBodilessEntity</span><span class="p">()</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="p">}</span>
+</span></code></pre></div>
+<div class="language-kotlin highlight"><span class="filename">notification/domain/AntifraudClient.kt</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@Component</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kd">class</span><span class="w"> </span><span class="nc">AntifraudClient</span><span class="p">(</span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">webClient</span><span class="p">:</span><span class="w"> </span><span class="n">WebClient</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="kd">suspend</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">revisar</span><span class="p">(</span><span class="n">evento</span><span class="p">:</span><span class="w"> </span><span class="n">MovimientoRegistrado</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">        </span><span class="n">webClient</span><span class="p">.</span><span class="na">post</span><span class="p">()</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">            </span><span class="p">.</span><span class="na">uri</span><span class="p">(</span><span class="s">&quot;/antifraud&quot;</span><span class="p">)</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">            </span><span class="p">.</span><span class="na">bodyValue</span><span class="p">(</span><span class="n">evento</span><span class="p">)</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">            </span><span class="p">.</span><span class="na">retrieve</span><span class="p">()</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">            </span><span class="p">.</span><span class="na">awaitBodilessEntity</span><span class="p">()</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">}</span>
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Tres clientes separados, a propósito</p>
+<p>Podrías tener un solo cliente con un parámetro para la ruta, pero cada servicio externo —correo, push, antifraude— es una responsabilidad distinta que mañana evoluciona por su lado (uno agrega reintentos, otro cambia de proveedor). Un cliente por servicio deja cada cambio contenido. Es el mismo criterio de <em>package by feature</em>: preferimos la duplicación honesta a la abstracción prematura.</p>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Necesitas WebClient y el puente de coroutines</p>
 <p><code>WebClient</code> y las extensiones <code>awaitBody</code>/<code>awaitBodilessEntity</code> vienen de WebFlux. Agrega al <code>build.gradle.kts</code>:</p>
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;org.springframework.boot:spring-boot-starter-webflux&quot;</span><span class="p">)</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;org.jetbrains.kotlinx:kotlinx-coroutines-reactor&quot;</span><span class="p">)</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;org.springframework.boot:spring-boot-starter-webflux&quot;</span><span class="p">)</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;org.jetbrains.kotlinx:kotlinx-coroutines-reactor&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <p><code>WebClient</code> convive sin problema con tu app web tradicional: acá lo usamos solo como <strong>cliente</strong> para llamar afuera, no cambiamos cómo tu wallet atiende sus propias peticiones. El <code>kotlinx-coroutines-reactor</code> es el puente que convierte el mundo reactivo de WebClient en funciones suspendidas.</p>
 </div>
-<h2 id="el-listener-tambien-suspendido">El listener, también suspendido<a class="headerlink" href="#el-listener-tambien-suspendido" title="Permanent link">&para;</a></h2>
-<p>Falta enganchar esto al consumidor. La buena noticia: desde <strong>Spring Kafka 3.2</strong>, un <code>@KafkaListener</code> puede ser una función <code>suspend</code>. Spring sabe ejecutarla como coroutine.</p>
-<div class="language-kotlin highlight"><span class="filename">notification/messaging/MovimientoNotificationListener.kt</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">package</span><span class="w"> </span><span class="nn">com.baqjug.wallet.notification.messaging</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">import</span><span class="w"> </span><span class="nn">com.baqjug.wallet.movement.domain.MovimientoRegistrado</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="k">import</span><span class="w"> </span><span class="nn">com.baqjug.wallet.notification.domain.NotificationService</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.kafka.annotation.KafkaListener</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.stereotype.Component</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="nd">@Component</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="kd">class</span><span class="w"> </span><span class="nc">MovimientoNotificationListener</span><span class="p">(</span>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">notificationService</span><span class="p">:</span><span class="w"> </span><span class="n">NotificationService</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">    </span><span class="nd">@KafkaListener</span><span class="p">(</span><span class="n">topics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">[</span><span class="s">&quot;wallet.movements&quot;</span><span class="o">]</span><span class="p">,</span><span class="w"> </span><span class="n">groupId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;notification&quot;</span><span class="p">)</span>
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">    </span><span class="kd">suspend</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">onMovimiento</span><span class="p">(</span><span class="n">evento</span><span class="p">:</span><span class="w"> </span><span class="n">MovimientoRegistrado</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">        </span><span class="n">notificationService</span><span class="p">.</span><span class="na">notificar</span><span class="p">(</span><span class="n">evento</span><span class="p">)</span>
-</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="p">}</span>
+<h2 id="correr-esto-100-local-servicios-externos-de-mentira">Correr esto 100% local: servicios externos de mentira<a class="headerlink" href="#correr-esto-100-local-servicios-externos-de-mentira" title="Permanent link">&para;</a></h2>
+<p>Los clientes de arriba hacen <code>POST</code> a <code>/emails</code>, <code>/push</code> y <code>/antifraud</code>. Pero en un taller no tenemos esos tres servicios de verdad, y montarlos sería otro proyecto. La solución: un <strong>controlador de mentira</strong> dentro de la misma app que responde en esas rutas y <strong>simula la latencia</strong> de un servicio externo (unos 200 ms). Así ves el efecto de las coroutines sin depender de nada de afuera.</p>
+<div class="language-kotlin highlight"><span class="filename">notification/web/MockExternalController.kt (SOLO PARA LA DEMO)</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">package</span><span class="w"> </span><span class="nn">com.baqjug.wallet.notification.web</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">import</span><span class="w"> </span><span class="nn">com.baqjug.wallet.movement.domain.MovimientoRegistrado</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.slf4j.LoggerFactory</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.http.ResponseEntity</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.web.bind.annotation.PostMapping</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.web.bind.annotation.RequestBody</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.web.bind.annotation.RequestMapping</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.web.bind.annotation.RestController</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="nd">@RestController</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="nd">@RequestMapping</span><span class="p">(</span><span class="s">&quot;/mock-external&quot;</span><span class="p">)</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="kd">class</span><span class="w"> </span><span class="nc">MockExternalController</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">log</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LoggerFactory</span><span class="p">.</span><span class="na">getLogger</span><span class="p">(</span><span class="n">javaClass</span><span class="p">)</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="w">    </span><span class="nd">@PostMapping</span><span class="p">(</span><span class="s">&quot;/emails&quot;</span><span class="p">)</span>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">emails</span><span class="p">(</span><span class="nd">@RequestBody</span><span class="w"> </span><span class="n">evento</span><span class="p">:</span><span class="w"> </span><span class="n">MovimientoRegistrado</span><span class="p">):</span><span class="w"> </span><span class="n">ResponseEntity</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span>
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="w">        </span><span class="n">simularLatencia</span><span class="p">(</span><span class="s">&quot;email&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">evento</span><span class="p">)</span>
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="w">    </span><span class="nd">@PostMapping</span><span class="p">(</span><span class="s">&quot;/push&quot;</span><span class="p">)</span>
+</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">push</span><span class="p">(</span><span class="nd">@RequestBody</span><span class="w"> </span><span class="n">evento</span><span class="p">:</span><span class="w"> </span><span class="n">MovimientoRegistrado</span><span class="p">):</span><span class="w"> </span><span class="n">ResponseEntity</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span>
+</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a><span class="w">        </span><span class="n">simularLatencia</span><span class="p">(</span><span class="s">&quot;push&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">evento</span><span class="p">)</span>
+</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>
+</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a><span class="w">    </span><span class="nd">@PostMapping</span><span class="p">(</span><span class="s">&quot;/antifraud&quot;</span><span class="p">)</span>
+</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">antifraud</span><span class="p">(</span><span class="nd">@RequestBody</span><span class="w"> </span><span class="n">evento</span><span class="p">:</span><span class="w"> </span><span class="n">MovimientoRegistrado</span><span class="p">):</span><span class="w"> </span><span class="n">ResponseEntity</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span>
+</span><span id="__span-6-27"><a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a><span class="w">        </span><span class="n">simularLatencia</span><span class="p">(</span><span class="s">&quot;antifraud&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">evento</span><span class="p">)</span>
+</span><span id="__span-6-28"><a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>
+</span><span id="__span-6-29"><a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">simularLatencia</span><span class="p">(</span>
+</span><span id="__span-6-30"><a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a><span class="w">        </span><span class="n">servicio</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span>
+</span><span id="__span-6-31"><a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a><span class="w">        </span><span class="n">evento</span><span class="p">:</span><span class="w"> </span><span class="n">MovimientoRegistrado</span>
+</span><span id="__span-6-32"><a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a><span class="w">    </span><span class="p">):</span><span class="w"> </span><span class="n">ResponseEntity</span><span class="o">&lt;</span><span class="n">Void</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-33"><a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a><span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="na">info</span><span class="p">(</span><span class="s">&quot;🐢 [mock-external] {} procesando {}...&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">servicio</span><span class="p">,</span><span class="w"> </span><span class="n">evento</span><span class="p">.</span><span class="na">toId</span><span class="p">)</span>
+</span><span id="__span-6-34"><a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a><span class="w">        </span><span class="n">Thread</span><span class="p">.</span><span class="na">sleep</span><span class="p">(</span><span class="m">200</span><span class="p">)</span><span class="w">   </span><span class="c1">// simula un servicio externo lento</span>
+</span><span id="__span-6-35"><a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a><span class="w">        </span><span class="n">log</span><span class="p">.</span><span class="na">info</span><span class="p">(</span><span class="s">&quot;✅ [mock-external] {} terminó&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">servicio</span><span class="p">)</span>
+</span><span id="__span-6-36"><a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">ResponseEntity</span><span class="p">.</span><span class="na">accepted</span><span class="p">().</span><span class="na">build</span><span class="p">()</span>
+</span><span id="__span-6-37"><a id="__codelineno-6-37" name="__codelineno-6-37" href="#__codelineno-6-37"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-6-38"><a id="__codelineno-6-38" name="__codelineno-6-38" href="#__codelineno-6-38"></a><span class="p">}</span>
 </span></code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Esto es andamiaje de la demo, no producción</p>
+<p>El <code>MockExternalController</code> existe <strong>solo</strong> para que el ejercicio corra en tu máquina sin tres servicios reales. En producción esas rutas viven en otros servicios (o en proveedores), y tu wallet apenas los llama. El <code>Thread.sleep(200)</code> está ahí a propósito para imitar una red lenta; nunca metas un <code>sleep</code> así en tu código de verdad.</p>
+</div>
+<p>Y para que los clientes sepan a dónde pegar, un <code>WebClient</code> con la URL base configurable:</p>
+<div class="language-kotlin highlight"><span class="filename">notification/config/WebClientConfig.kt</span><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">package</span><span class="w"> </span><span class="nn">com.baqjug.wallet.notification.config</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.beans.factory.annotation.Value</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.context.annotation.Bean</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.context.annotation.Configuration</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.web.reactive.function.client.WebClient</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="nd">@Configuration</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="kd">class</span><span class="w"> </span><span class="nc">WebClientConfig</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="nd">@Bean</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">webClient</span><span class="p">(</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">        </span><span class="nd">@Value</span><span class="p">(</span><span class="s">&quot;\</span><span class="si">${</span><span class="n">wallet</span><span class="p">.</span><span class="na">notification</span><span class="p">.</span><span class="na">external</span><span class="o">-</span><span class="n">base</span><span class="o">-</span><span class="n">url</span><span class="p">:</span><span class="n">http</span><span class="p">:</span><span class="c1">//localhost:8080/mock-external}&quot;)</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">        </span><span class="n">baseUrl</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">    </span><span class="p">):</span><span class="w"> </span><span class="n">WebClient</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">WebClient</span><span class="p">.</span><span class="na">builder</span><span class="p">()</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">        </span><span class="p">.</span><span class="na">baseUrl</span><span class="p">(</span><span class="n">baseUrl</span><span class="p">)</span>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">        </span><span class="p">.</span><span class="na">build</span><span class="p">()</span>
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="si">}</span>
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">La URL base, por configuración</p>
+<p>Por defecto apunta al mock (<code>http://localhost:8080/mock-external</code>), así arranca sin que toques nada. En un entorno real cambias <code>wallet.notification.external-base-url</code> (o su variable de entorno) para apuntar a los servicios de verdad, sin recompilar. Es el mismo criterio de <code>${...:default}</code> que ya usaste con el correo en la Fase 7.</p>
+</div>
+<h2 id="el-listener-uno-nuevo-sin-tocar-el-que-ya-anda">El listener: uno nuevo, sin tocar el que ya anda<a class="headerlink" href="#el-listener-uno-nuevo-sin-tocar-el-que-ya-anda" title="Permanent link">&para;</a></h2>
+<p>Falta enganchar esto al consumidor. La buena noticia: desde <strong>Spring Kafka 3.2</strong>, un <code>@KafkaListener</code> puede ser una función <code>suspend</code>; Spring la corre como coroutine sin que montes nada más.</p>
+<p>Ahora, una decisión de diseño. En la <a href="../fase-07-consumir-evento/">Fase 7</a> ya existe <code>MovimientoNotificationListener</code> (grupo <code>notification</code>), que manda el <strong>correo de verdad</strong> por Mailpit. Ese anda bien y <strong>no lo vamos a tocar</strong>. En vez de reemplazarlo, <strong>agregamos un listener nuevo</strong>, <code>MovimientoCoroutineListener</code>, con su <strong>propio <code>groupId</code></strong> (<code>notification-coroutines-demo</code>):</p>
+<div class="language-kotlin highlight"><span class="filename">notification/messaging/MovimientoCoroutineListener.kt</span><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">package</span><span class="w"> </span><span class="nn">com.baqjug.wallet.notification.messaging</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="k">import</span><span class="w"> </span><span class="nn">com.baqjug.wallet.movement.domain.MovimientoRegistrado</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="k">import</span><span class="w"> </span><span class="nn">com.baqjug.wallet.notification.domain.NotificationService</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.kafka.annotation.KafkaListener</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="k">import</span><span class="w"> </span><span class="nn">org.springframework.stereotype.Component</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="nd">@Component</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="kd">class</span><span class="w"> </span><span class="nc">MovimientoCoroutineListener</span><span class="p">(</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">notificationService</span><span class="p">:</span><span class="w"> </span><span class="n">NotificationService</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="w">    </span><span class="nd">@KafkaListener</span><span class="p">(</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="w">        </span><span class="n">topics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">[</span><span class="s">&quot;wallet.movements&quot;</span><span class="o">]</span><span class="p">,</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="w">        </span><span class="n">groupId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;notification-coroutines-demo&quot;</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="w">    </span><span class="p">)</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="w">    </span><span class="kd">suspend</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">onMovimiento</span><span class="p">(</span><span class="n">evento</span><span class="p">:</span><span class="w"> </span><span class="n">MovimientoRegistrado</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="w">        </span><span class="n">notificationService</span><span class="p">.</span><span class="na">notificar</span><span class="p">(</span><span class="n">evento</span><span class="p">)</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="p">}</span>
+</span></code></pre></div>
+<div class="admonition danger">
+<p class="admonition-title">Decisión de diseño: sumar, no reemplazar</p>
+<p>El listener de la Fase 7 (<code>MovimientoNotificationListener</code>, grupo <code>notification</code>) ya hace un trabajo real —el correo— y no queremos romperlo para mostrar coroutines. Como cada <code>groupId</code> recibe <strong>su propia copia</strong> de cada evento (lo viste en la Fase 7), el listener nuevo con grupo <code>notification-coroutines-demo</code> consume el mismo topic <strong>en paralelo y sin pisar</strong> al viejo: lleva su propio offset y no le quita eventos a nadie. Un mismo <code>wallet.movements</code>, dos consumidores independientes. El día que quieras que esta versión reemplace a la vieja, jubilas el listener de la Fase 7; por ahora conviven para poder comparar.</p>
+</div>
 <div class="admonition abstract">
 <p class="admonition-title">Spring al paso: <code>@KafkaListener suspend fun</code></p>
 <p>El método del listener es <code>suspend</code>, y con eso puede llamar a <code>notificationService.notificar(...)</code>, que también es <code>suspend</code>. Spring for Apache Kafka (desde la versión 3.2) detecta que el listener es suspendido y lo corre en una coroutine, sin que tú montes nada más. Así la cadena entera —listener → servicio → clientes HTTP— es no bloqueante de punta a punta.</p>
 </div>
+<h3 id="verlo-funcionar">Verlo funcionar<a class="headerlink" href="#verlo-funcionar" title="Permanent link">&para;</a></h3>
+<p>Con la app y Redpanda arriba, haz una transferencia normal (la misma de la Fase 7). Además del correo real que ya mandaba <code>notification</code>, en los logs de la app vas a ver al mock trabajar:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>🐢 [mock-external] email procesando 22222222-...
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>🐢 [mock-external] push procesando 22222222-...
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>🐢 [mock-external] antifraud procesando 22222222-...
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>✅ [mock-external] push terminó
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>✅ [mock-external] email terminó
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>✅ [mock-external] antifraud terminó
+</span></code></pre></div>
+<p>Fíjate en el orden: los tres <code>🐢 procesando</code> salen <strong>casi al mismo tiempo</strong>, no uno después de que el anterior terminó. Eso es el <code>async</code> + <code>awaitAll</code>: las tres llamadas arrancaron juntas y <code>notificar</code> completó en ~200 ms (lo que tardó la más lenta), no en ~600 ms. Si las llamaras en serie —<code>email.enviar(...)</code>, luego <code>push.enviar(...)</code>, luego <code>antifraud.revisar(...)</code>— verías cada <code>🐢</code> esperar al <code>✅</code> anterior, y el total treparía a ~600 ms.</p>
 <h2 id="muchas-llamadas-parmap-arrow">Muchas llamadas: <code>parMap</code> (Arrow)<a class="headerlink" href="#muchas-llamadas-parmap-arrow" title="Permanent link">&para;</a></h2>
 <p><code>coroutineScope { async {} }</code> + <code>awaitAll</code> es perfecto para <strong>2 o 3 llamadas conocidas de antemano</strong> (correo, push, antifraude). Pero, ¿y si tienes que llamar a un servicio externo <strong>una vez por cada elemento de una lista</strong> de tamaño N? Por ejemplo, un consumer que recibe un lote de movimientos y por cada uno consulta las preferencias del destinatario en otro servicio.</p>
 <h3 id="como-se-hace-normal-y-por-que-no-conviene">Cómo se hace normal (y por qué no conviene)<a class="headerlink" href="#como-se-hace-normal-y-por-que-no-conviene" title="Permanent link">&para;</a></h3>
 <p>Con la stdlib, lo directo es reusar <code>async</code> sobre la lista:</p>
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">// Lanza las N a la vez, SIN límite.</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kd">val</span><span class="w"> </span><span class="nv">resultados</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">items</span><span class="p">.</span><span class="na">map</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">async</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">llamarServicio</span><span class="p">(</span><span class="nb">it</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}.</span><span class="na">awaitAll</span><span class="p">()</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1">// Lanza las N a la vez, SIN límite.</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kd">val</span><span class="w"> </span><span class="nv">resultados</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">items</span><span class="p">.</span><span class="na">map</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">async</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">llamarServicio</span><span class="p">(</span><span class="nb">it</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}.</span><span class="na">awaitAll</span><span class="p">()</span>
 </span></code></pre></div>
 <p>Con N chico funciona. Pero tiene dos problemas serios:</p>
 <ul>
@@ -1172,8 +1368,8 @@
 </ul>
 <h3 id="con-parmap-y-cuando-conviene">Con <code>parMap</code>, y cuándo conviene<a class="headerlink" href="#con-parmap-y-cuando-conviene" title="Permanent link">&para;</a></h3>
 <p><code>arrow-fx-coroutines</code> trae <code>parMap</code>, que resuelve las dos cosas de una:</p>
-<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">// Acota a 4 en paralelo, en un solo parámetro.</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kd">val</span><span class="w"> </span><span class="nv">resultados</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">items</span><span class="p">.</span><span class="na">parMap</span><span class="p">(</span><span class="n">concurrency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">4</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">llamarServicio</span><span class="p">(</span><span class="nb">it</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<div class="language-kotlin highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1">// Acota a 4 en paralelo, en un solo parámetro.</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kd">val</span><span class="w"> </span><span class="nv">resultados</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">items</span><span class="p">.</span><span class="na">parMap</span><span class="p">(</span><span class="n">concurrency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">4</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">llamarServicio</span><span class="p">(</span><span class="nb">it</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
 </span></code></pre></div>
 <div class="admonition abstract">
 <p class="admonition-title">Concepto al paso: qué te da <code>parMap</code></p>
@@ -1213,9 +1409,9 @@
 <p>Quizás escuchaste que los <strong>virtual threads</strong> (hilos virtuales, del JDK 21 en adelante) resuelven lo mismo. En parte sí: un hilo virtual es tan barato que la JVM puede tener millones, y cuando uno se bloquea esperando red, no amarra un hilo "real" del sistema. Con virtual threads, tu código bloqueante de siempre escala sin reescribirlo.</p>
 <p>La diferencia práctica: los virtual threads hacen barato <strong>bloquear</strong>; las coroutines te dan además <strong>concurrencia estructurada</strong> y paralelismo explícito (<code>async</code>/<code>awaitAll</code>) para decir "estas tres cosas van a la vez y espero a todas". No son rivales; se combinan bien. Para "que un consumidor lento no amarre hilos", cualquiera de los dos sirve. Para "lanza estas tres llamadas en paralelo y júntalas", las coroutines lo dicen más claro.</p>
 <h2 id="cierre-de-la-fase">Cierre de la fase<a class="headerlink" href="#cierre-de-la-fase" title="Permanent link">&para;</a></h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>./gradlew<span class="w"> </span><span class="nb">test</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>git<span class="w"> </span>add<span class="w"> </span>.
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;fase-9: consumidor de notification no bloqueante con coroutines&quot;</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>./gradlew<span class="w"> </span><span class="nb">test</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>git<span class="w"> </span>add<span class="w"> </span>.
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;fase-9: consumidor de notification no bloqueante con coroutines&quot;</span>
 </span></code></pre></div>
 <p>Lo que te llevas: una función suspendida no bloquea el hilo mientras espera, y con <code>coroutineScope</code> + <code>async</code>/<code>awaitAll</code> corres varias llamadas externas en paralelo con código que se lee de arriba a abajo, sin callbacks. Es la herramienta para cuando un consumidor deja de solo tocar la base y empieza a orquestar servicios externos.</p>
 <p>En la <a href="../fase-10-despliegue/">Fase 10</a> cerramos el taller: llevamos la wallet a la nube con correo real, imagen Docker y despliegue con GitHub Actions.</p>

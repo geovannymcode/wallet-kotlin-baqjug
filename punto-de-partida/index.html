@@ -287,6 +287,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="../configuracion/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Guía de Configuración
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../referencias/" class="md-tabs__link">
         
   
@@ -926,7 +945,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 9 · Coroutines (avanzada)
+    Fase 9 · Coroutines
   
 
     
@@ -954,7 +973,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 10 · Despliegue con GitHub Actions
+    Fase 10 · Despliegue a la nube
   
 
     
@@ -971,6 +990,33 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuracion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guía de Configuración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1023,7 +1069,7 @@
 
 
 <h1 id="punto-de-partida">Punto de partida<a class="headerlink" href="#punto-de-partida" title="Permanent link">&para;</a></h1>
-<p><strong>Bienvenido.</strong> Vas a construir la parte más jugosa de una wallet: la que desacopla el sistema con <strong>eventos</strong>. Pero antes de escribir la primera línea, necesitas dos cosas para no perderte: <strong>entender qué se construyó antes</strong> para que nada te suene a magia y <strong>tener el proyecto corriendo en tu máquina</strong>. Esta página te da las dos, más un repaso rápido del Kotlin que vamos a usar. Cinco minutos aquí, y arrancamos todos parejos: sepas o no sepas Kotlin.</p>
+<p><strong>Bienvenido.</strong> Vas a construir la parte más jugosa de una wallet: la que desacopla el sistema con <strong>eventos</strong>. Pero antes de escribir la primera línea, necesitas dos cosas para no perderte: <strong>entender qué se construyó antes</strong>, para que nada te suene a magia y <strong>tener el proyecto corriendo en tu máquina</strong>. Esta página te da las dos, más un repaso rápido del Kotlin que vamos a usar. Cinco minutos aquí, y arrancamos todos parejos: sepas o no sepas Kotlin.</p>
 <h2 id="que-se-construyo-de-la-fase-0-a-la-4">Qué se construyó de la Fase 0 a la 4<a class="headerlink" href="#que-se-construyo-de-la-fase-0-a-la-4" title="Permanent link">&para;</a></h2>
 <p>Antes de los eventos, las primeras fases levantan una <strong>wallet REST completa y funcionando</strong>:</p>
 <ul>
@@ -1034,7 +1080,7 @@
 <p>Todo sobre Kotlin + Spring Boot, con arquitectura <strong>por features</strong> (Tomato: <code>domain</code>/<code>web</code>, servicios concretos, un mapper entre la entidad y el DTO), Postgres gestionado en Supabase y el esquema versionado con Flyway. Es una wallet que mueve plata de verdad, síncrona, contra una base real.</p>
 <div class="admonition abstract">
 <p class="admonition-title">La pieza clave para lo que viene</p>
-<p>En la Fase 4, <code>transfer</code> registra el movimiento con una <strong>llamada directa</strong> a <code>movement</code>. Esa costura esa llamada síncrona y acoplada, es justo lo que la parte de eventos va a cortar. Guárdala en la cabeza: es el "antes" de toda la segunda mitad.</p>
+<p>En la Fase 4, <code>transfer</code> registra el movimiento con una <strong>llamada directa</strong> a <code>movement</code>. Esa costura, esa llamada síncrona y acoplada, es justo lo que la parte de eventos va a cortar. Guárdala en la cabeza: es el "antes" de toda la segunda mitad.</p>
 </div>
 <h2 id="por-que-arrancamos-aqui">Por qué arrancamos aquí<a class="headerlink" href="#por-que-arrancamos-aqui" title="Permanent link">&para;</a></h2>
 <p>La parte de eventos (Fases 5–10) <strong>se apoya</strong> en esa base REST; no la reinventa. Construir las Fases 0 a 4 en vivo se comería el tiempo que queremos dedicarle a lo nuevo: <strong>por qué</strong> desacoplar con eventos, y <strong>cómo</strong> publicarlos y consumirlos. Por eso no la escribimos desde cero hoy: te la damos <strong>lista</strong>, y arrancamos donde empieza lo interesante.</p>

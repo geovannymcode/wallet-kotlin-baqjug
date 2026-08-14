@@ -18,7 +18,7 @@
         <link rel="prev" href="../fase-09-coroutines/">
       
       
-        <link rel="next" href="../referencias/">
+        <link rel="next" href="../configuracion/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Fase 10 · Despliegue con GitHub Actions - Una wallet en Kotlin: de un endpoint REST a eventos</title>
+        <title>Fase 10 · Despliegue a la nube - Una wallet en Kotlin: de un endpoint REST a eventos</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#fase-10-despliegue-con-github-actions" class="md-skip">
+        <a href="#fase-10-despliegue-a-la-nube" class="md-skip">
           Saltar a contenido
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Fase 10 · Despliegue con GitHub Actions
+              Fase 10 · Despliegue a la nube
             
           </span>
         </div>
@@ -278,6 +278,25 @@
         </a>
       </li>
     
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../configuracion/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Guía de Configuración
+
+      </a>
+    </li>
   
 
       
@@ -752,7 +771,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 9 · Coroutines (avanzada)
+    Fase 9 · Coroutines
   
 
     
@@ -789,7 +808,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 10 · Despliegue con GitHub Actions
+    Fase 10 · Despliegue a la nube
   
 
     
@@ -807,7 +826,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 10 · Despliegue con GitHub Actions
+    Fase 10 · Despliegue a la nube
   
 
     
@@ -855,10 +874,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#parte-3-desplegar-a-render-o-railway" class="md-nav__link">
+  <a href="#parte-3-desplegar-a-render" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Parte 3 — Desplegar a Render (o Railway)
+        Parte 3 — Desplegar a Render
       
     </span>
   </a>
@@ -866,10 +885,60 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#parte-4-variables-de-entorno-y-secretos-en-un-solo-lugar-mental" class="md-nav__link">
+  <a href="#parte-4-la-configuracion-que-pide-un-entorno-real" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Parte 4 — Variables de entorno y secretos, en un solo lugar mental
+        Parte 4 — La configuración que pide un entorno real
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Parte 4 — La configuración que pide un entorno real">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#el-puerto-lo-pone-el-host" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        El puerto lo pone el host
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kafka-contra-un-broker-administrado-redpanda-cloud" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kafka contra un broker administrado (Redpanda Cloud)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#el-correo-en-produccion-del-smtp-directo-a-una-api-http" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        El correo en producción: del SMTP directo a una API HTTP
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parte-5-variables-de-entorno-y-secretos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parte 5 — Variables de entorno y secretos
       
     </span>
   </a>
@@ -899,6 +968,33 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuracion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guía de Configuración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -950,16 +1046,16 @@
   
 
 
-<h1 id="fase-10-despliegue-con-github-actions">Fase 10 · Despliegue con GitHub Actions<a class="headerlink" href="#fase-10-despliegue-con-github-actions" title="Permanent link">&para;</a></h1>
-<p><strong>Rama</strong>: opcional, es el paso de "shipping". Hasta acá corriste todo en tu máquina; esta fase lleva la wallet a la nube y hace que cada <code>push</code> a <code>main</code> la construya, la teste y la despliegue sola.
-<strong>Lo que vas a lograr</strong>: empaquetar la app en una imagen Docker, montar un pipeline de GitHub Actions que compila y testea, y desplegar a Render (o Railway) con <code>push</code> a <code>main</code>.</p>
+<h1 id="fase-10-despliegue-a-la-nube">Fase 10 · Despliegue a la nube<a class="headerlink" href="#fase-10-despliegue-a-la-nube" title="Permanent link">&para;</a></h1>
+<p><strong>Rama</strong>: opcional, es el paso de "shipping". Hasta acá corriste todo en tu máquina; esta fase lleva la wallet a la nube y hace que cada <code>push</code> a la rama conectada la construya, la teste y la despliegue sola.
+<strong>Lo que vas a lograr</strong>: empaquetar la app en una imagen Docker, montar un pipeline de GitHub Actions que compila y testea, y desplegar a Render con la <strong>configuración real</strong> que pide un entorno de nube: un puerto dinámico, un broker Kafka administrado (con sus ACLs y su topic de DLQ), y el correo por <strong>API HTTP</strong> —porque el SMTP saliente suele venir bloqueado—.</p>
 <div class="admonition warning">
-<p class="admonition-title">Esta fase es de operaciones (ops), no de código de negocio</p>
-<p>Nada del código de negocio cambia. Acá montamos lo que falta para que la wallet viva fuera de tu laptop: imagen Docker, integración continua y despliegue. Es opcional, pero es lo que separa "me corre en local" de "está en internet".</p>
+<p class="admonition-title">Esta fase es de operaciones (ops)</p>
+<p>El código de <strong>negocio</strong> no cambia. Lo único que se ajusta es la plomería para que la wallet viva fuera de tu laptop: imagen Docker, integración continua, y unas cuantas piezas de configuración que en local no se notan pero en la nube son la diferencia entre "arranca" y "no arranca". Es opcional, pero es lo que separa "me corre en local" de "está en internet".</p>
 </div>
 <div class="admonition note">
-<p class="admonition-title">El correo ya lo montamos en la Fase 7</p>
-<p>En la Fase 7, <code>notification</code> manda el correo con Mailpit en local. Al desplegar, las variables <code>SMTP_*</code> dejan de apuntar a Mailpit y apuntan a un proveedor real (SendGrid, Amazon SES, Mailgun). El código no cambia; solo las variables.</p>
+<p class="admonition-title">¿Y correr todo esto local con Docker?</p>
+<p>Esta fase es el camino a la <strong>nube</strong>. Si lo que quieres es levantar el stack completo (Postgres, Redpanda y Mailpit) en tu máquina con <code>docker compose</code>, eso vive aparte, en la <a href="../configuracion/#parte-1-entorno-local-con-docker-compose">guía de configuración</a>. La app está hecha para <strong>ambos</strong> casos; lo que cambia es la configuración por perfil.</p>
 </div>
 <hr />
 <h2 id="parte-1-empaquetar-la-app-en-una-imagen-docker">Parte 1 — Empaquetar la app en una imagen Docker<a class="headerlink" href="#parte-1-empaquetar-la-app-en-una-imagen-docker" title="Permanent link">&para;</a></h2>
@@ -1018,37 +1114,121 @@
 <p class="admonition-title">Spring al paso: por qué los tests corren sin infra</p>
 <p>¿Te acuerdas del test de la Fase 4 con MockK? Corre sin base ni broker, así que el runner de GitHub lo ejecuta sin levantar Supabase ni Redpanda. Los tests que sí necesitan infra real (con Testcontainers) también corren en Actions, porque el runner tiene Docker; eso ya es un paso más avanzado.</p>
 </div>
-<h2 id="parte-3-desplegar-a-render-o-railway">Parte 3 — Desplegar a Render (o Railway)<a class="headerlink" href="#parte-3-desplegar-a-render-o-railway" title="Permanent link">&para;</a></h2>
-<p>Render y Railway despliegan tu imagen Docker directo desde el repo. La forma más simple para un taller es dejar que <strong>el propio host construya y despliegue</strong> con cada <code>push</code> a <code>main</code>:</p>
+<h2 id="parte-3-desplegar-a-render">Parte 3 — Desplegar a Render<a class="headerlink" href="#parte-3-desplegar-a-render" title="Permanent link">&para;</a></h2>
+<p>Render despliega tu imagen Docker directo desde el repo. La forma más simple para un taller es dejar que <strong>el propio host construya y despliegue</strong> con cada <code>push</code> a la rama que conectes:</p>
 <ol>
 <li>En Render, creas un <strong>Web Service</strong> y conectas tu repo de GitHub.</li>
 <li>Eliges <strong>Docker</strong> como entorno: Render detecta tu <code>Dockerfile</code> y construye la imagen.</li>
-<li>En <strong>Environment</strong>, pones las variables (las mismas que usas en local, con los valores de la nube).</li>
-<li>Cada <code>push</code> a <code>main</code> dispara un build y un deploy automáticos.</li>
+<li>En <strong>Environment</strong>, pones las variables (las de la <a href="#parte-5-variables-de-entorno-y-secretos">tabla de más abajo</a>).</li>
+<li>Cada <code>push</code> a la rama trackeada dispara un build y un deploy automáticos.</li>
 </ol>
-<p>Así queda un reparto limpio: <strong>GitHub Actions hace el CI</strong> (compila y testea) y <strong>Render hace el CD</strong> (construye la imagen y la despliega). No necesitas meter secretos de despliegue en Actions.</p>
-<div class="admonition note">
-<p class="admonition-title">Si quieres disparar el deploy desde Actions</p>
-<p>Render te da un <em>Deploy Hook</em> (una URL secreta). Si prefieres que el deploy ocurra solo después de que pasen los tests, guardas esa URL como secreto en GitHub y agregas un paso al final del workflow:</p>
-<div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Desplegar en Render</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">if</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github.ref == &#39;refs/heads/main&#39;</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">curl -fsSL &quot;$RENDER_DEPLOY_HOOK&quot;</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">env</span><span class="p">:</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">RENDER_DEPLOY_HOOK</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.RENDER_DEPLOY_HOOK }}</span>
-</span></code></pre></div>
+<p>Así queda un reparto limpio: <strong>GitHub Actions hace el CI</strong> (compila y testea) y <strong>Render hace el CD</strong> (construye la imagen y la despliega).</p>
+<div class="admonition warning">
+<p class="admonition-title">‘Restart’ no es lo mismo que ‘Deploy’</p>
+<p>En Render, <strong>Restart</strong> solo reinicia el contenedor con la <strong>misma imagen ya construida</strong> —no baja código nuevo ni reconstruye el <code>Dockerfile</code>—. El único evento que recoge tu último commit es <strong>Deploy</strong> (verás <em>"Deploy live for <code>&lt;sha&gt;</code>"</em> en la pestaña <em>Events</em>). Si aplicaste un fix y "el error sigue igual", revisa primero <strong>qué commit quedó desplegado</strong> en <em>Events</em> antes de dudar del fix. Y ojo con la rama: Render despliega la que <strong>conectaste</strong>, que no tiene por qué ser <code>main</code>.</p>
 </div>
 <div class="admonition warning">
 <p class="admonition-title">La UI de estos hosts cambia seguido</p>
-<p>Los pasos exactos de Render/Railway (nombres de botones, capa gratis) cambian con el tiempo. Toma esto como el mapa —conectar repo, elegir Docker, poner variables, deploy con push— y confirma el detalle en su documentación al momento de hacerlo.</p>
+<p>Los nombres de botones, la capa gratis y los límites de Render cambian con el tiempo. Toma esto como el mapa —conectar repo, elegir Docker, poner variables, deploy con push— y confirma el detalle en su documentación al momento de hacerlo.</p>
 </div>
-<h2 id="parte-4-variables-de-entorno-y-secretos-en-un-solo-lugar-mental">Parte 4 — Variables de entorno y secretos, en un solo lugar mental<a class="headerlink" href="#parte-4-variables-de-entorno-y-secretos-en-un-solo-lugar-mental" title="Permanent link">&para;</a></h2>
+<h2 id="parte-4-la-configuracion-que-pide-un-entorno-real">Parte 4 — La configuración que pide un entorno real<a class="headerlink" href="#parte-4-la-configuracion-que-pide-un-entorno-real" title="Permanent link">&para;</a></h2>
+<p>Esto es lo que en local no se nota y en la nube sí. Cada pieza responde a una diferencia concreta entre tu máquina y un host administrado.</p>
+<h3 id="el-puerto-lo-pone-el-host">El puerto lo pone el host<a class="headerlink" href="#el-puerto-lo-pone-el-host" title="Permanent link">&para;</a></h3>
+<p>Render (y casi cualquier PaaS) te asigna el puerto por la variable <code>PORT</code> y espera que el proceso escuche <strong>ahí</strong>, no en un <code>8080</code> fijo. Si Tomcat arranca en 8080 y el host esperaba otro puerto, verás en el log <code>No open ports detected</code> en bucle aunque la app haya arrancado bien.</p>
+<div class="language-yaml highlight"><span class="filename">src/main/resources/application.yaml</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">server</span><span class="p">:</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${PORT:8080}</span>
+</span></code></pre></div>
+<p>El <em>fallback</em> a <code>8080</code> mantiene el comportamiento local (sin <code>PORT</code> definido, sigue en 8080). No configuras <code>PORT</code> a mano en Render: lo inyecta el host.</p>
+<h3 id="kafka-contra-un-broker-administrado-redpanda-cloud">Kafka contra un broker administrado (Redpanda Cloud)<a class="headerlink" href="#kafka-contra-un-broker-administrado-redpanda-cloud" title="Permanent link">&para;</a></h3>
+<p>En local, el broker es tuyo y arranca con todo listo. En la nube, el broker es un servicio aparte con <strong>autenticación, ACLs y topics</strong> que quizá no existen aún cuando la app enciende. Tres ajustes cubren eso:</p>
+<p><strong>1. Que un fallo de autorización al arrancar no mate al consumidor para siempre.</strong> Por defecto, Spring Kafka trata un <code>AuthorizationException</code> como <strong>fatal</strong> y <strong>detiene</strong> el consumidor de forma permanente; arreglar la ACL después no lo revive, toca reiniciar el servicio a mano. Con un intervalo de reintento, en cambio, reintenta hasta que la ACL o el topic existan:</p>
+<div class="language-yaml highlight"><span class="filename">src/main/resources/application.yaml (Kafka, resiliencia)</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">spring</span><span class="p">:</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">kafka</span><span class="p">:</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">listener</span><span class="p">:</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">      </span><span class="nt">auth-exception-retry-interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10s</span>
+</span></code></pre></div>
+<p><strong>2. El topic de la DLQ tiene que existir (y con permisos).</strong> En la <a href="../fase-08-que-sigue/">Fase 8</a> el <code>DeadLetterPublishingRecoverer</code> publica los muertos en <code>wallet.movements-dlt</code>. En un broker administrado normalmente <strong>no puedes auto-crear</strong> topics, así que créalo tú en la consola (mismas particiones que <code>wallet.movements</code>) y dale acceso al usuario SASL a <strong>los dos</strong> nombres. Si no existe o falta el permiso, Kafka responde <code>TopicAuthorizationException</code> —y como la publicación a la DLQ nunca tiene éxito, el consumidor reintenta en bucle y <strong>traba la partición</strong> para todos—.</p>
+<div class="admonition danger">
+<p class="admonition-title">‘Not authorized to access topics: [wallet.movements-dlt]’ en bucle</p>
+<p>Kafka responde <code>TOPIC_AUTHORIZATION_FAILED</code> tanto cuando <strong>no tienes permiso</strong> como cuando el <strong>topic no existe</strong> (es a propósito: no te filtra qué topics hay). Si ves ese error repitiéndose cada segundo, la causa casi siempre es que el topic de la DLQ no está creado o el usuario SASL no lo cubre. Créalo y concede el acceso, y el bucle se corta.</p>
+</div>
+<p><strong>3. El módulo Kotlin de Jackson tiene que ser el de Jackson 2.</strong> El <code>JsonSerializer</code>/<code>JsonDeserializer</code> de spring-kafka usan <strong>Jackson 2</strong> (<code>com.fasterxml.jackson</code>). Si agregas el módulo Kotlin de <strong>Jackson 3</strong> (<code>tools.jackson.module</code>), nunca se registra en ese <code>ObjectMapper</code> y deserializar un <code>data class</code> de Kotlin falla con <code>InvalidDefinitionException: no Creators</code>. Usa el módulo de Jackson 2:</p>
+<div class="language-kotlin highlight"><span class="filename">build.gradle.kts (dependencies)</span><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;com.fasterxml.jackson.module:jackson-module-kotlin&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="el-correo-en-produccion-del-smtp-directo-a-una-api-http">El correo en producción: del SMTP directo a una API HTTP<a class="headerlink" href="#el-correo-en-produccion-del-smtp-directo-a-una-api-http" title="Permanent link">&para;</a></h3>
+<p>En la <a href="../fase-07-consumir-evento/">Fase 7</a> <code>notification</code> manda el correo por <strong>SMTP</strong> contra Mailpit. Eso es perfecto en local, pero en la nube choca con un muro: <strong>muchos hosts bloquean el SMTP saliente</strong>. Render, por ejemplo, bloquea los puertos SMTP (25, 465 y 587) en los Web Services del plan Free desde septiembre de 2025.</p>
+<p>La salida es no atarse a un transporte: abstraemos el envío detrás de un <strong>puerto</strong> (<code>MailPort</code>) con dos implementaciones que Spring elige <strong>por perfil</strong>. En local, SMTP contra Mailpit; en la nube, la <strong>API HTTP</strong> de un proveedor (acá Resend), que va por HTTPS (443) y no está bloqueada.</p>
+<div class="language-kotlin highlight"><span class="filename">notification/domain/MailPort.kt</span><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">package</span><span class="w"> </span><span class="nn">com.baqjug.wallet.notification.domain</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kd">data</span><span class="w"> </span><span class="kd">class</span><span class="w"> </span><span class="nc">Mail</span><span class="p">(</span><span class="kd">val</span><span class="w"> </span><span class="nv">to</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">subject</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">body</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">)</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="kd">interface</span><span class="w"> </span><span class="nc">MailPort</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="kd">fun</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="n">mail</span><span class="p">:</span><span class="w"> </span><span class="n">Mail</span><span class="p">)</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">}</span>
+</span></code></pre></div>
+<div class="language-kotlin highlight"><span class="filename">notification/domain/SmtpMailPort.kt (perfil local)</span><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nd">@Component</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nd">@Profile</span><span class="p">(</span><span class="s">&quot;local&quot;</span><span class="p">)</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kd">class</span><span class="w"> </span><span class="nc">SmtpMailPort</span><span class="p">(</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">mailSender</span><span class="p">:</span><span class="w"> </span><span class="n">JavaMailSender</span><span class="p">,</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="nd">@Value</span><span class="p">(</span><span class="s">&quot;\</span><span class="si">${</span><span class="n">wallet</span><span class="p">.</span><span class="na">mail</span><span class="p">.</span><span class="na">from</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span><span class="w"> </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">from</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">MailPort</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="n">mail</span><span class="p">:</span><span class="w"> </span><span class="n">Mail</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">        </span><span class="kd">val</span><span class="w"> </span><span class="nv">msg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SimpleMailMessage</span><span class="p">().</span><span class="na">apply</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">            </span><span class="k">this</span><span class="p">.</span><span class="na">from</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">from</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">            </span><span class="n">setTo</span><span class="p">(</span><span class="n">mail</span><span class="p">.</span><span class="na">to</span><span class="p">)</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">            </span><span class="n">subject</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mail</span><span class="p">.</span><span class="na">subject</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">            </span><span class="n">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mail</span><span class="p">.</span><span class="na">body</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">        </span><span class="n">mailSender</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="p">}</span>
+</span></code></pre></div>
+<div class="language-kotlin highlight"><span class="filename">notification/domain/ResendMailPort.kt (perfil de nube)</span><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nd">@Component</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nd">@Profile</span><span class="p">(</span><span class="s">&quot;!local&quot;</span><span class="p">)</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kd">class</span><span class="w"> </span><span class="nc">ResendMailPort</span><span class="p">(</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="nd">@Value</span><span class="p">(</span><span class="s">&quot;\</span><span class="si">${</span><span class="n">wallet</span><span class="p">.</span><span class="na">mail</span><span class="p">.</span><span class="na">resend</span><span class="o">-</span><span class="n">api</span><span class="o">-</span><span class="n">key</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span><span class="w"> </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">apiKey</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span><span class="p">,</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="nd">@Value</span><span class="p">(</span><span class="s">&quot;\</span><span class="si">${</span><span class="n">wallet</span><span class="p">.</span><span class="na">mail</span><span class="p">.</span><span class="na">from</span><span class="si">}</span><span class="s">&quot;</span><span class="p">)</span><span class="w"> </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">from</span><span class="p">:</span><span class="w"> </span><span class="kt">String</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="p">)</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">MailPort</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">val</span><span class="w"> </span><span class="nv">client</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RestClient</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="s">&quot;https://api.resend.com&quot;</span><span class="p">)</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="n">mail</span><span class="p">:</span><span class="w"> </span><span class="n">Mail</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">        </span><span class="n">client</span><span class="p">.</span><span class="na">post</span><span class="p">()</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">            </span><span class="p">.</span><span class="na">uri</span><span class="p">(</span><span class="s">&quot;/emails&quot;</span><span class="p">)</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">            </span><span class="p">.</span><span class="na">header</span><span class="p">(</span><span class="s">&quot;Authorization&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Bearer </span><span class="si">$</span><span class="n">apiKey</span><span class="s">&quot;</span><span class="p">)</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">            </span><span class="p">.</span><span class="na">contentType</span><span class="p">(</span><span class="n">MediaType</span><span class="p">.</span><span class="na">APPLICATION_JSON</span><span class="p">)</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">            </span><span class="p">.</span><span class="na">body</span><span class="p">(</span><span class="n">mapOf</span><span class="p">(</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">                </span><span class="s">&quot;from&quot;</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">from</span><span class="p">,</span>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">                </span><span class="s">&quot;to&quot;</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">mail</span><span class="p">.</span><span class="na">to</span><span class="p">,</span>
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">                </span><span class="s">&quot;subject&quot;</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">mail</span><span class="p">.</span><span class="na">subject</span><span class="p">,</span>
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="w">                </span><span class="s">&quot;text&quot;</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">mail</span><span class="p">.</span><span class="na">body</span>
+</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="w">            </span><span class="p">))</span>
+</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="w">            </span><span class="p">.</span><span class="na">retrieve</span><span class="p">()</span>
+</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="w">            </span><span class="p">.</span><span class="na">toBodilessEntity</span><span class="p">()</span>
+</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>EmailNotifier</code> (y el <code>DeadLetterListener</code> de la Fase 8, si lo usas para alertar) pasan a depender de <code>MailPort</code> en vez de <code>JavaMailSender</code> directamente. No saben —ni les importa— si detrás hay SMTP o HTTP.</p>
+<div class="admonition abstract">
+<p class="admonition-title">Spring al paso: <code>@Profile</code> elige la implementación</p>
+<p><code>@Profile("local")</code> monta ese bean <strong>solo</strong> cuando el perfil <code>local</code> está activo; <code>@Profile("!local")</code>, cuando <strong>no</strong> lo está. Como ambos implementan <code>MailPort</code>, <code>EmailNotifier</code> recibe el que corresponda sin cambiar una línea. En tu máquina activas el perfil con <code>SPRING_PROFILES_ACTIVE=local</code> (SMTP + Mailpit); en Render lo dejas sin ese perfil (gana <code>ResendMailPort</code>, la API HTTP). El mismo binario, dos transportes.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">SMTP saliente bloqueado en planes Free</p>
+<p>No es un problema tuyo de configuración: es política del host. Render bloquea 25/465/587 en Free desde sep. 2025 (<a href="https://render.com/changelog/free-web-services-will-no-longer-allow-outbound-traffic-to-smtp-ports">changelog oficial</a>). Por eso en producción vamos por HTTPS a la API del proveedor. Si tu host sí permite SMTP, puedes seguir con <code>JavaMailSender</code> y un SMTP real; la abstracción <code>MailPort</code> te deja elegir sin reescribir <code>notification</code>.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">El remitente y el destinatario, en modo sandbox</p>
+<p>Sin un dominio propio verificado, Resend trabaja en <strong>sandbox</strong>: el remitente debe ser <code>onboarding@resend.dev</code> (un <code>MAIL_FROM</code> con dominio inválido como <code>wallet@localhost</code> da <code>422</code>), y solo entrega al <strong>correo registrado</strong> en tu cuenta de Resend. Como <code>EmailNotifier</code> escribe al email de la cuenta <strong>destino</strong> (el dato semilla <code>V1__create_accounts.sql</code>), en sandbox ese correo debe ser el tuyo registrado —actualízalo en la base, no en la migración compartida—. Para mandar a cualquier destinatario, verifica un dominio propio en Resend y sales del sandbox.</p>
+</div>
+<h2 id="parte-5-variables-de-entorno-y-secretos">Parte 5 — Variables de entorno y secretos<a class="headerlink" href="#parte-5-variables-de-entorno-y-secretos" title="Permanent link">&para;</a></h2>
 <p>El código nunca sabe un secreto; lo lee del entorno. Lo que cambia es <strong>quién</strong> pone esas variables en cada lado:</p>
 <ul>
-<li><strong>En tu máquina</strong>: en IntelliJ (<strong>Run → Edit Configurations → Environment variables</strong>).</li>
+<li><strong>En tu máquina</strong>: en IntelliJ (<strong>Run → Edit Configurations → Environment variables</strong>), o en el <code>docker compose</code> del <a href="../configuracion/#parte-1-entorno-local-con-docker-compose">entorno local</a>.</li>
 <li><strong>En GitHub Actions</strong>: en <strong>Settings → Secrets and variables → Actions</strong> del repo.</li>
-<li><strong>En Render/Railway</strong>: en la sección <strong>Environment</strong> del servicio.</li>
+<li><strong>En Render</strong>: en la sección <strong>Environment</strong> del servicio.</li>
 </ul>
-<p>Las que necesita la wallet:</p>
+<p>Las que necesita la wallet <strong>en la nube</strong>:</p>
 <table>
 <thead>
 <tr>
@@ -1059,22 +1239,42 @@
 <tbody>
 <tr>
 <td><code>SUPABASE_DB_URL</code> / <code>SUPABASE_DB_USER</code> / <code>SUPABASE_DB_PASSWORD</code></td>
-<td>La base Postgres</td>
+<td>La base Postgres (Supabase)</td>
 </tr>
 <tr>
 <td><code>REDPANDA_BOOTSTRAP</code> / <code>REDPANDA_USER</code> / <code>REDPANDA_PASSWORD</code></td>
-<td>El broker de eventos</td>
+<td>El broker de eventos (Redpanda Cloud)</td>
 </tr>
 <tr>
-<td><code>SMTP_HOST</code> / <code>SMTP_PORT</code> / <code>SMTP_USER</code> / <code>SMTP_PASSWORD</code></td>
-<td>El correo (Mailpit en local, un proveedor real en la nube)</td>
+<td><code>RESEND_API_KEY</code></td>
+<td>La API key de Resend (autenticación <code>Bearer</code> sobre HTTPS)</td>
+</tr>
+<tr>
+<td><code>MAIL_FROM</code></td>
+<td>El remitente (<code>onboarding@resend.dev</code> en sandbox)</td>
+</tr>
+<tr>
+<td><code>MAIL_OPS_TO</code></td>
+<td>Destino de las alertas de DLQ (en sandbox, tu correo registrado en Resend)</td>
+</tr>
+<tr>
+<td><code>JAVA_TOOL_OPTIONS</code></td>
+<td>Para que la JVM quepa en los 512 MB del plan Free (p. ej. <code>-Xmx400m</code>)</td>
+</tr>
+<tr>
+<td><code>WALLET_DEMO_DLQ_SENTINEL</code></td>
+<td>Flag de la demo de DLQ — apagado (<code>false</code>) fuera de la demostración</td>
 </tr>
 </tbody>
 </table>
+<div class="admonition note">
+<p class="admonition-title"><code>PORT</code> no la pones tú</p>
+<p>Render inyecta <code>PORT</code> solo; tu app la lee con <code>server.port: ${PORT:8080}</code>. Y como el correo en la nube va por HTTP (Resend), <strong>no</strong> necesitas las <code>SMTP_*</code> en producción: esas viven solo en el <a href="../configuracion/#parte-1-entorno-local-con-docker-compose">entorno local</a>.</p>
+</div>
 <h2 id="cierre-de-la-fase">Cierre de la fase<a class="headerlink" href="#cierre-de-la-fase" title="Permanent link">&para;</a></h2>
-<p>Con esto, la wallet dejó de vivir solo en tu laptop: cada <code>push</code> a <code>main</code> pasa por CI (compila y testea), se construye la imagen Docker, y Render la despliega. Corre en la nube, con su base en Supabase, sus eventos en Redpanda, y correos que en local atrapa Mailpit y en producción salen por un SMTP real.</p>
-<p>Y con eso cerramos el taller: arrancaste con un endpoint REST contra una base, y terminaste con una wallet transaccional, desacoplada por eventos, testeada, empaquetada y desplegada. Nada de humo: código y tuberías de verdad.</p>
-<p>Revisa las <a href="../referencias/">Referencias</a> para seguir por tu cuenta.</p>
+<p>Con esto, la wallet dejó de vivir solo en tu laptop: cada <code>push</code> pasa por CI (compila y testea), se construye la imagen Docker, y Render la despliega. Corre en la nube, con su base en Supabase, sus eventos en Redpanda Cloud, y correos que salen por la API de Resend —mientras que en local siguen cayendo en Mailpit, sin tocar el código—.</p>
+<p>Y con eso cerramos el taller: arrancaste con un endpoint REST contra una base, y terminaste con una wallet transaccional, desacoplada por eventos, endurecida con outbox/idempotencia/DLQ, testeada, empaquetada y desplegada. Nada de humo: código y tuberías de verdad.</p>
+<p>Para levantar todo local con un solo <code>docker compose</code>, sigue en la <a href="../configuracion/">guía de configuración</a>. Y revisa las <a href="../referencias/">Referencias</a> para seguir por tu cuenta.</p>
 
 
 

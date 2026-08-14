@@ -287,6 +287,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="../configuracion/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Guía de Configuración
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../referencias/" class="md-tabs__link">
         
   
@@ -749,6 +768,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#las-dependencias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Las dependencias
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#parte-1-configurar-el-consumidor" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -865,7 +895,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 9 · Coroutines (avanzada)
+    Fase 9 · Coroutines
   
 
     
@@ -893,7 +923,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 10 · Despliegue con GitHub Actions
+    Fase 10 · Despliegue a la nube
   
 
     
@@ -910,6 +940,33 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuracion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guía de Configuración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -965,16 +1022,29 @@
 <p><strong>Rama</strong>: <code>fase-7</code> = <code>main</code>
 <strong>Lo que vas a lograr</strong>: consumir el evento <code>MovimientoRegistrado</code> desde dos lados a la vez. <code>notification</code> avisa, <code>movement</code> guarda, cada uno en su propio grupo, sin que <code>transfer</code> sepa que existen. Acá se ve, en vivo, por qué los eventos valen la pena.</p>
 <hr />
+<h2 id="las-dependencias">Las dependencias<a class="headerlink" href="#las-dependencias" title="Permanent link">&para;</a></h2>
+<p>De la <strong>Fase 6</strong> ya vienes con <strong>Kafka</strong> (<code>spring-boot-starter-kafka</code>) y <strong>Jackson</strong> (<code>jackson-databind</code>); <strong>no las repitas</strong>. Para esta fase —consumir el evento y notificar por correo— faltan solo dos:</p>
+<div class="language-kotlin highlight"><span class="filename">build.gradle.kts (dependencies) — solo lo nuevo de esta fase</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;com.fasterxml.jackson.datatype:jackson-datatype-jsr310&quot;</span><span class="p">)</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;org.springframework.boot:spring-boot-starter-mail&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<ul>
+<li><strong><code>jackson-datatype-jsr310</code></strong> — el módulo de Jackson para los <strong>tipos de fecha/hora de Java 8+</strong> (<code>Instant</code>, <code>LocalDateTime</code>, etc.). Nuestro evento <code>MovimientoRegistrado</code> lleva un <code>occurredAt: Instant</code>, y <strong>sin este módulo Jackson no sabe leer ese <code>Instant</code></strong> al deserializar el JSON: la deserialización falla y el consumidor no procesa nada.</li>
+<li><strong><code>spring-boot-starter-mail</code></strong> — el <code>JavaMailSender</code> para mandar el correo (lo usamos con Mailpit, más abajo).</li>
+</ul>
+<div class="admonition danger">
+<p class="admonition-title">El que más duele: <code>jackson-datatype-jsr310</code></p>
+<p>Es fácil tener Kafka y Jackson y aun así fallar acá, porque el error de fechas no dice "te falta jsr310": suele venir disfrazado (<code>InvalidDefinitionException</code>, un "no deserializer for Instant" o parecido). Con este módulo en el classpath, Spring Boot lo registra solo y el <code>Instant</code> viaja sin drama. Si ves un error raro de Jackson con fechas al consumir, empieza por acá.</p>
+</div>
 <h2 id="parte-1-configurar-el-consumidor">Parte 1 — Configurar el consumidor<a class="headerlink" href="#parte-1-configurar-el-consumidor" title="Permanent link">&para;</a></h2>
 <p>Súmale al <code>application.yaml</code> el lado consumidor. El productor mandaba JSON; el consumidor lo reconstruye.</p>
-<div class="language-yaml highlight"><span class="filename">src/main/resources/application.yaml (consumer)</span><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">spring</span><span class="p">:</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">kafka</span><span class="p">:</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nt">consumer</span><span class="p">:</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">      </span><span class="nt">key-deserializer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">org.apache.kafka.common.serialization.StringDeserializer</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">      </span><span class="nt">value-deserializer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">org.springframework.kafka.support.serializer.JsonDeserializer</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">      </span><span class="nt">auto-offset-reset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">earliest</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">      </span><span class="nt">properties</span><span class="p">:</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">        </span><span class="nt">spring.json.trusted.packages</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;com.baqjug.wallet.*&quot;</span>
+<div class="language-yaml highlight"><span class="filename">src/main/resources/application.yaml (consumer)</span><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">spring</span><span class="p">:</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">kafka</span><span class="p">:</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">consumer</span><span class="p">:</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">      </span><span class="nt">key-deserializer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">org.apache.kafka.common.serialization.StringDeserializer</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">      </span><span class="nt">value-deserializer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">org.springframework.kafka.support.serializer.JsonDeserializer</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">      </span><span class="nt">auto-offset-reset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">earliest</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">      </span><span class="nt">properties</span><span class="p">:</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="nt">spring.json.trusted.packages</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;com.baqjug.wallet.*&quot;</span>
 </span></code></pre></div>
 <div class="admonition abstract">
 <p class="admonition-title">Concepto al paso: <code>trusted.packages</code> y por qué existe</p>
@@ -991,13 +1061,10 @@
 <p><strong>SMTP</strong> es el protocolo con el que las apps entregan correos a un servidor de correo. <strong>Mailpit</strong> es un servidor SMTP <strong>falso</strong>: tu app le entrega los correos como si fuera uno real, pero en vez de mandarlos a internet, Mailpit los <strong>atrapa</strong> y te los muestra en una página web. Ves el correo salir, sin que le llegue a nadie.</p>
 </div>
 <p>Levántalo con Docker (un solo comando):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>--name<span class="w"> </span>mailpit<span class="w"> </span>-p<span class="w"> </span><span class="m">1025</span>:1025<span class="w"> </span>-p<span class="w"> </span><span class="m">8025</span>:8025<span class="w"> </span>axllent/mailpit
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>--name<span class="w"> </span>mailpit<span class="w"> </span>-p<span class="w"> </span><span class="m">1025</span>:1025<span class="w"> </span>-p<span class="w"> </span><span class="m">8025</span>:8025<span class="w"> </span>axllent/mailpit
 </span></code></pre></div>
 <p>El puerto <code>1025</code> es el SMTP (por ahí le entrega tu app); el <code>8025</code> es la UI web, en <code>http://localhost:8025</code>, donde ves los correos.</p>
-<p>Agrega la dependencia de correo de Spring:</p>
-<div class="language-kotlin highlight"><span class="filename">build.gradle.kts (dependencies)</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">implementation</span><span class="p">(</span><span class="s">&quot;org.springframework.boot:spring-boot-starter-mail&quot;</span><span class="p">)</span>
-</span></code></pre></div>
-<p>Y la configuración del correo, con valores por variable de entorno para poder cambiarlos en producción sin tocar el código:</p>
+<p>La dependencia <code>spring-boot-starter-mail</code> ya la sumaste arriba. Ahora, la configuración del correo, con valores por variable de entorno para poder cambiarlos en producción sin tocar el código:</p>
 <div class="language-yaml highlight"><span class="filename">src/main/resources/application.yaml (correo)</span><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">spring</span><span class="p">:</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">mail</span><span class="p">:</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${SMTP_HOST:localhost}</span>
@@ -1039,6 +1106,12 @@
 </span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">    </span><span class="p">}</span>
 </span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="p">}</span>
 </span></code></pre></div>
+<p>Paso a paso:</p>
+<ol>
+<li><strong>Pide la cuenta destino</strong> a <code>AccountService</code> (<code>getById(evento.toId)</code>), que trae al dueño y su email.</li>
+<li><strong>Arma el correo</strong> con <code>SimpleMailMessage</code>: remitente, destinatario, asunto y cuerpo.</li>
+<li><strong>Lo envía</strong> con <code>mailSender.send(...)</code>, que en el taller cae en Mailpit en vez de salir a internet.</li>
+</ol>
 <div class="admonition abstract">
 <p class="admonition-title">Spring al paso: <code>JavaMailSender</code></p>
 <p><code>JavaMailSender</code> es la herramienta de Spring para mandar correos. La autoconfigura Boot con las propiedades <code>spring.mail.*</code> que pusiste; tú solo la inyectas. <code>SimpleMailMessage</code> es un correo de texto plano: remitente, destinatario, asunto y cuerpo. Para HTML o adjuntos usarías <code>MimeMessage</code>, pero para un aviso nos sobra con esto.</p>
@@ -1095,6 +1168,13 @@
 <p>Fíjate: <code>notification</code> está en el grupo <code>notification</code> y <code>movement</code> en el grupo <code>movement</code>. Como son grupos distintos, <strong>cada uno recibe una copia</strong> de cada evento. Una sola transferencia dispara un aviso y un registro, en paralelo, sin que se pisen. Si ambos estuvieran en el mismo grupo, el broker le daría el evento a uno solo. Esa diferencia es el corazón del pub/sub.</p>
 </div>
 <p><img alt="Diagrama de flujo del pub/sub: transfer publica el evento MovimientoRegistrado en el topic wallet.movements de Redpanda; el grupo notification lo recibe y envía el correo, y el grupo movement lo recibe y guarda el registro" src="../img/Img_2.png" /></p>
+<p>El diagrama, paso a paso:</p>
+<ol>
+<li><strong><code>transfer</code> publica</strong> <code>MovimientoRegistrado</code> en el topic <code>wallet.movements</code> de Redpanda, y ahí termina su trabajo.</li>
+<li><strong>El grupo <code>notification</code> recibe una copia</strong> del evento y manda el correo (por Mailpit).</li>
+<li><strong>El grupo <code>movement</code> recibe otra copia</strong> del mismo evento y guarda el registro.</li>
+</ol>
+<p>Como son dos grupos distintos, cada uno recibe <strong>su propia copia</strong> y trabaja en paralelo, sin pisarse. Y <code>transfer</code> ni se entera de que existen: publicó y siguió.</p>
 <div class="admonition note">
 <p class="admonition-title">Un consumidor nuevo no toca a <code>transfer</code></p>
 <p>Este es el pago de todo el trabajo. Agregaste dos consumidores y no tocaste una línea de <code>transfer</code>. Mañana quieres antifraude: creas otro <code>@KafkaListener</code> con su grupo y listo. <code>transfer</code> ni se entera. Compara eso con la rama <code>Success</code> de la Fase 4, donde cada cosa nueva era editar y redesplegar <code>transfer</code>.</p>

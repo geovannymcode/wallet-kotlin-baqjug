@@ -287,6 +287,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="../configuracion/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Guía de Configuración
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../referencias/" class="md-tabs__link">
         
   
@@ -843,7 +862,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 9 · Coroutines (avanzada)
+    Fase 9 · Coroutines
   
 
     
@@ -871,7 +890,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 10 · Despliegue con GitHub Actions
+    Fase 10 · Despliegue a la nube
   
 
     
@@ -888,6 +907,33 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuracion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guía de Configuración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -957,6 +1003,12 @@
 </ul>
 <p>La mensajería por eventos corta ese nudo. En vez de que <code>transfer</code> llame a cada interesado, publica un hecho, "se registró un movimiento", y se desentiende. Los interesados escuchan por su cuenta.</p>
 <p><img alt="Antes (acoplado): transfer llama directo a movement, correo, push y antifraude. Después (por eventos): transfer solo publica el evento MovimientoRegistrado en el broker, y movement, notificación y antifraude lo escuchan cada uno por su cuenta" src="../img/Img_3.png" /></p>
+<p>El diagrama, antes y después:</p>
+<ul>
+<li><strong>Antes (acoplado):</strong> <code>transfer</code> llama directo a <code>movement</code>, al correo, al push y a antifraude. Son cuatro llamadas en línea; cada interesado nuevo es otra llamada más adentro de <code>transfer</code>, y si una se pone lenta o falla, arrastra a la transferencia.</li>
+<li><strong>Después (por eventos):</strong> <code>transfer</code> publica <strong>un solo</strong> evento, <code>MovimientoRegistrado</code>, en el broker y se desentiende. <code>movement</code>, <code>notification</code> y antifraude lo escuchan cada uno por su cuenta. Sumar un consumidor nuevo <strong>no toca</strong> <code>transfer</code>.</li>
+</ul>
+<p>Lo que cambió no es cuántas flechas hay, sino <strong>de quién dependen</strong>: en el "antes" todas salen de <code>transfer</code>; en el "después", <code>transfer</code> solo le habla al broker y deja de conocer a sus consumidores.</p>
 <p><code>transfer</code> ya no sabe quién escucha ni cuántos. Publica y sigue. Ese es todo el truco, y cambia cómo crece el sistema.</p>
 <h2 id="el-vocabulario-minimo">El vocabulario mínimo<a class="headerlink" href="#el-vocabulario-minimo" title="Permanent link">&para;</a></h2>
 <div class="admonition abstract">

@@ -285,6 +285,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="configuracion/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Guía de Configuración
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="referencias/" class="md-tabs__link">
         
   
@@ -847,7 +866,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 9 · Coroutines (avanzada)
+    Fase 9 · Coroutines
   
 
     
@@ -875,7 +894,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 10 · Despliegue con GitHub Actions
+    Fase 10 · Despliegue a la nube
   
 
     
@@ -892,6 +911,33 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="configuracion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guía de Configuración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -960,6 +1006,13 @@
 <p>Lo delicado no es el "qué", es el "cómo". Una transferencia no puede quedar a medias —la cuenta de origen debitada y la de destino sin acreditar—, y el dinero no admite errores de redondeo. Todo lo que construimos de la Fase 0 a la 4 gira alrededor de resolver eso bien: una wallet que mueve plata de verdad, por REST, contra una base real.</p>
 <p>A vista de pájaro es simple: unos clientes entran por HTTP a una aplicación, y esa aplicación lee y escribe en una base Postgres. La forma completa la ves en la <a href="fase-00-arranque/">Fase 0</a>.</p>
 <p><img alt="Resumen del flujo síncrono: la petición REST entra a transfer, que valida y mueve el saldo en account, y registra el movimiento en movement con una llamada directa dentro del mismo proceso" src="img/Img_9.png" /></p>
+<p>El diagrama, paso a paso:</p>
+<ol>
+<li><strong>Cliente → <code>transfer</code> (HTTP):</strong> llega un <code>POST</code> con origen, destino y monto.</li>
+<li><strong><code>transfer</code> valida y mueve en <code>account</code>:</strong> comprueba que haya saldo, debita la cuenta de origen y acredita la de destino.</li>
+<li><strong><code>transfer</code> → <code>movement</code> (llamada directa):</strong> en la misma operación, deja registrado el movimiento.</li>
+</ol>
+<p>Todo ocurre dentro del mismo proceso y de una sola transacción: si algo falla, no queda nada a medias. La contra —que pagaremos más adelante— es que <code>transfer</code> conoce a todos, y cada cosa nueva que cuelgue de una transferencia lo obliga a cambiar.</p>
 <h2 id="por-que-este-stack-y-no-otro">Por qué este stack (y no otro)<a class="headerlink" href="#por-que-este-stack-y-no-otro" title="Permanent link">&para;</a></h2>
 <p>Cada pieza responde a un requisito del problema, no a la moda:</p>
 <ul>
@@ -973,6 +1026,13 @@
 <h2 id="y-mas-adelante-desacoplar-con-eventos">Y más adelante: desacoplar con eventos<a class="headerlink" href="#y-mas-adelante-desacoplar-con-eventos" title="Permanent link">&para;</a></h2>
 <p>Cuando la wallet crece, a cada transferencia le empiezan a colgar cosas: manda un correo, dispara un push, avisa a antifraude, refresca métricas. Hacerlo todo con llamadas directas termina en un <code>transfer</code> que conoce a media empresa y que se cae si se cae el correo. La mensajería por eventos corta ese nudo: <code>transfer</code> publica un hecho, "se registró un movimiento", y se desentiende; cada interesado reacciona por su cuenta.</p>
 <p><img alt="Resumen del flujo por eventos: transfer mueve el saldo en account y publica el evento MovimientoRegistrado en Redpanda, que notification consume y notifica" src="img/Img_10.png" /></p>
+<p>El diagrama, paso a paso:</p>
+<ol>
+<li><strong><code>transfer</code> mueve el saldo en <code>account</code></strong>, igual que antes.</li>
+<li><strong><code>transfer</code> publica el evento</strong> <code>MovimientoRegistrado</code> en Redpanda y se desentiende: no sabe —ni le importa— quién lo va a escuchar.</li>
+<li><strong><code>notification</code> consume el evento</strong> por su cuenta y avisa. Mañana, otro interesado (push, antifraude) se suscribe y reacciona <strong>sin tocar <code>transfer</code></strong>.</li>
+</ol>
+<p>El cambio de fondo: <code>transfer</code> dejó de llamar a nadie; ahora solo anuncia lo que pasó. Ahí está el desacople.</p>
 <p>Eso —y cómo endurecerlo para producción, las coroutines y el despliegue— lo construyes <strong>de la Fase 5 en adelante</strong>. Si por ahora vienes por la parte REST, con las Fases 0 a 4 ya tienes una wallet completa y redonda.</p>
 <h2 id="como-esta-organizada">Cómo está organizada<a class="headerlink" href="#como-esta-organizada" title="Permanent link">&para;</a></h2>
 <p>Cada fase es una etapa y, en el repo, una rama. Puedes hacer <code>git checkout</code> a cualquiera para seguir desde ahí si te atrasas.</p>

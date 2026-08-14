@@ -287,6 +287,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="../configuracion/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Guía de Configuración
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../referencias/" class="md-tabs__link">
         
   
@@ -854,7 +873,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 9 · Coroutines (avanzada)
+    Fase 9 · Coroutines
   
 
     
@@ -882,7 +901,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 10 · Despliegue con GitHub Actions
+    Fase 10 · Despliegue a la nube
   
 
     
@@ -899,6 +918,33 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuracion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guía de Configuración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1068,6 +1114,15 @@
 </div>
 <p>Visto de punta a punta, así recorre una transferencia exitosa el flujo síncrono, ya con el registro del movimiento incluido:</p>
 <p><img alt="Diagrama de secuencia de una transferencia: el cliente hace POST /api/transfers al TransferController, que llama a TransferService dentro de una transacción; este pide moveMoney a AccountService y luego record a MovementService, y responde 200 COMPLETED" src="../img/Img_1.png" /></p>
+<p>El diagrama, paso a paso:</p>
+<ol>
+<li><strong>Cliente → <code>TransferController</code></strong> (<code>POST /api/transfers</code>): llega la petición con origen, destino y monto.</li>
+<li><strong><code>TransferController</code> → <code>TransferService</code>:</strong> el controller solo delega, y aquí se abre la transacción.</li>
+<li><strong><code>TransferService</code> → <code>AccountService.moveMoney</code>:</strong> valida el saldo y mueve la plata entre las dos cuentas.</li>
+<li><strong><code>TransferService</code> → <code>MovementService.record</code>:</strong> con el <code>Success</code> en mano, registra el movimiento. Esta es la <strong>llamada directa</strong>.</li>
+<li><strong>Respuesta <code>200 COMPLETED</code></strong> de vuelta al cliente.</li>
+</ol>
+<p>Todo ocurre en una sola transacción y un solo proceso, así que los pasos 3 y 4 se confirman juntos. Y fíjate en el paso 4: es la costura —<code>transfer</code> llamando a <code>movement</code> en línea— que la parte de eventos va a cortar en la <a href="../fase-05-por-que-eventos/">Fase 5</a>.</p>
 <h2 id="parte-4-un-test-que-corre-sin-base">Parte 4 — Un test que corre sin base<a class="headerlink" href="#parte-4-un-test-que-corre-sin-base" title="Permanent link">&para;</a></h2>
 <p>Antes de cerrar, un test de la orquestación de <code>transfer</code>. Lo bueno: no necesita base ni Spring. Como <code>transfer</code> depende de dos clases concretas (<code>AccountService</code> y <code>MovementService</code>), las <strong>mockeamos</strong>: creamos versiones falsas al vuelo, les decimos qué responder, y verificamos con quién habló <code>transfer</code>.</p>
 <p>Para eso usamos <strong>MockK</strong>, la librería de mocking de Kotlin. Se agrega como dependencia de test:</p>

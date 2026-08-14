@@ -287,6 +287,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="../configuracion/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Guía de Configuración
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../referencias/" class="md-tabs__link">
         
   
@@ -865,7 +884,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 9 · Coroutines (avanzada)
+    Fase 9 · Coroutines
   
 
     
@@ -893,7 +912,7 @@
   <span class="md-ellipsis">
     
   
-    Fase 10 · Despliegue con GitHub Actions
+    Fase 10 · Despliegue a la nube
   
 
     
@@ -910,6 +929,33 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuracion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guía de Configuración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1005,6 +1051,15 @@
 </span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">MoveResult</span><span class="p">.</span><span class="na">Success</span>
 </span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="p">}</span>
 </span></code></pre></div>
+<p>Línea por línea, lo que hace:</p>
+<ol>
+<li><strong>Busca la cuenta de origen</strong> (<code>findById(fromId)</code>); si no existe, corta de una con <code>AccountNotFound(fromId)</code> gracias al operador Elvis <code>?:</code>.</li>
+<li><strong>Busca la de destino</strong>, igual; si falta, <code>AccountNotFound(toId)</code>.</li>
+<li><strong>Valida el saldo:</strong> si <code>from.balance &lt; amount</code>, devuelve <code>InsufficientFunds</code> sin mover un peso.</li>
+<li><strong>Mueve la plata:</strong> debita el origen (<code>subtract</code>) y acredita el destino (<code>add</code>).</li>
+<li><strong>Persiste las dos cuentas</strong> y devuelve <code>Success</code>.</li>
+</ol>
+<p>La clave está en el paso 5 junto con la transacción: como el método es <code>@Transactional</code>, los dos <code>save</code> se confirman juntos. Si el segundo falla, el primero se revierte y <strong>ninguna cuenta queda a medias</strong>.</p>
 <p>Como este método <strong>sí escribe</strong> en la base, la transacción de la clase cambia: subimos <code>@Transactional</code> (lectura y escritura) al nivel de la clase, y dejamos el <code>getById</code> como solo-lectura a nivel de método. La clase completa queda así:</p>
 <div class="language-kotlin highlight"><span class="filename">account/domain/AccountService.kt (la clase completa)</span><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@Service</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nd">@Transactional</span>
@@ -1189,6 +1244,15 @@
 <p>Consulta los saldos después: Elena quedó en 70000 y Geovanny en 30000. Intenta ahora transferir 999999 y te da <code>422 Saldo insuficiente</code>, sin mover un peso.</p>
 <p>Con esto, la feature <code>account</code> ya tiene todas sus piezas conectadas: la entidad, el DTO, el mapper, el servicio y el repositorio.</p>
 <p><img alt="Diagrama de clases de la feature account: AccountEntity (entidad JPA) y AccountResponse (DTO de salida) unidos por AccountMapper; AccountService usa AccountRepository (interfaz) y AccountMapper, y devuelve un MoveResult (sealed class)" src="../img/Img_4.png" /></p>
+<p>El diagrama, pieza por pieza:</p>
+<ol>
+<li><strong><code>AccountEntity</code></strong> — la entidad JPA, el mapeo de la tabla <code>accounts</code>. Vive puertas adentro; el cliente nunca la ve.</li>
+<li><strong><code>AccountResponse</code></strong> — el DTO de salida, lo que sí ve el cliente. Expone solo lo que debe.</li>
+<li><strong><code>AccountMapper</code></strong> — traduce <code>AccountEntity</code> → <code>AccountResponse</code>. Esa conversión se arma en un solo lugar.</li>
+<li><strong><code>AccountRepository</code></strong> — la interfaz de acceso a datos; Spring Data la implementa sola.</li>
+<li><strong><code>AccountService</code></strong> — el corazón: usa el repositorio y el mapper para leer, y para mover plata devuelve un <code>MoveResult</code>, la sealed class con los tres desenlaces.</li>
+</ol>
+<p>Fíjate cómo entidad, DTO, mapper, repositorio y servicio viven todos dentro de la feature <code>account</code>, en el mismo paquete. Eso es <em>package by feature</em>: lo que cambia junto, junto.</p>
 <h2 id="cierre-de-la-fase">Cierre de la fase<a class="headerlink" href="#cierre-de-la-fase" title="Permanent link">&para;</a></h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>./gradlew<span class="w"> </span>compileKotlin
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>git<span class="w"> </span>add<span class="w"> </span>.
