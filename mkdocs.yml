@@ -50,7 +50,8 @@ nav:
       - "Fase 7 · Consumir el evento": fase-07-consumir-evento.md
       - "Fase 8 · De demo a producción": fase-08-que-sigue.md
       - "Fase 9 · Coroutines (avanzada)": fase-09-coroutines.md
-      - "Fase 10 · Despliegue con GitHub Actions": fase-10-despliegue.md
+      - "Fase 10 · Despliegue a la nube": fase-10-despliegue.md
+  - "Entorno local con Docker": entorno-local-docker.md
   - Referencias: referencias.md
 
 exclude_docs: |

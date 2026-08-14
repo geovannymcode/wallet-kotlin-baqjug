@@ -124,14 +124,17 @@ Y un relay que corre aparte, lee lo no enviado y publica:
 @Component
 class OutboxRelay(
     private val outbox: OutboxRepository,
-    private val kafkaTemplate: KafkaTemplate<String, String>
+    private val kafkaTemplate: KafkaTemplate<String, Any>,
+    private val mapper: ObjectMapper
 ) {
 
     @Scheduled(fixedDelay = 2000)
     @Transactional
     fun publicarPendientes() {
         outbox.findBySentAtIsNullOrderByCreatedAt().forEach { fila ->
-            kafkaTemplate.send(fila.topic, fila.msgKey, fila.payload)
+            // El payload ya es JSON (texto). Lo reparseamos a árbol para que
+            // el JsonSerializer lo codifique UNA sola vez (ver el danger de abajo).
+            kafkaTemplate.send(fila.topic, fila.msgKey, mapper.readTree(fila.payload))
             fila.sentAt = Instant.now()
         }
     }
@@ -142,8 +145,22 @@ class OutboxRelay(
     - `@Scheduled(fixedDelay = 2000)` — Spring llama este método **solo, cada 2 segundos**, en un hilo aparte. No lo invocas tú: corre en segundo plano. (Para que funcione, la app necesita `@EnableScheduling`, que agregamos justo abajo.)
     - `@Transactional` — envuelve el barrido en una transacción, para que marcar `sent_at` se confirme bien.
     - `findBySentAtIsNullOrderByCreatedAt()` — trae las filas **pendientes** (las que aún no tienen `sent_at`), de la más vieja a la más nueva.
-    - `kafkaTemplate.send(topic, key, payload)` — publica cada fila al broker. `KafkaTemplate` es la herramienta de Spring para publicar; el `payload` es el JSON que guardaste, y el `key` (la cuenta de origen) mantiene el orden por cuenta.
+    - `kafkaTemplate.send(topic, key, mapper.readTree(payload))` — publica cada fila al broker. Ojo con el `readTree`: el `payload` ya es texto JSON, y el `KafkaTemplate` de la app serializa el valor con `JsonSerializer` (el de la Fase 6). Si le pasaras el `String` tal cual, Jackson lo **volvería a codificar** y el consumidor no podría leerlo. Reparseándolo a árbol con `readTree`, se serializa **una sola vez**. El `key` (la cuenta de origen) mantiene el orden por cuenta.
     - `fila.sentAt = Instant.now()` — la marca como enviada. Como el método es `@Transactional` y la fila es una entidad JPA gestionada, Hibernate detecta el cambio y hace el `UPDATE` solo (*dirty checking*); no necesitas un `save`.
+
+!!! danger "Doble serialización: el bug silencioso del outbox"
+    Es fácil de introducir y difícil de ver. Guardaste el evento como **texto JSON** en la columna `payload`. Si el relay reenvía ese `String` tal cual por un `KafkaTemplate` con value-serializer `JsonSerializer` (el de la Fase 6), Jackson **codifica el texto otra vez**: en vez de `{"eventId":...}` publica `"{\"eventId\":...}"`, con comillas y escapes. El mensaje viaja, pero **ningún** `@KafkaListener` lo puede deserializar: agota los reintentos y cae a la DLQ en **cada** transferencia. La cura es reparsear el texto a árbol con `mapper.readTree(...)` antes de publicar, para que se serialice una sola vez.
+
+Como el relay ahora publica un árbol JSON (no el objeto original), el mensaje ya no lleva el header con el tipo Java. Dile al consumidor de la Fase 7 que **ignore ese header** y asuma siempre `MovimientoRegistrado` —es el único evento que viaja por ese topic—:
+
+```yaml title="src/main/resources/application.yaml (consumer, ajuste)"
+spring:
+  kafka:
+    consumer:
+      properties:
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.baqjug.wallet.movement.domain.MovimientoRegistrado
+```
 
 Para que ese `@Scheduled` corra de verdad, la aplicación tiene que **activar el scheduler** con `@EnableScheduling`. Va en la clase principal:
 
@@ -277,9 +294,9 @@ class MovimientoPersistenceListener(
 ¿Qué pasa cuando un evento revienta el consumidor una y otra vez? Un JSON corrupto, un dato imposible. Si lo reintentas para siempre, ese evento tranca la partición y bloquea a los que vienen detrás.
 
 !!! abstract "Concepto al paso: dead letter queue"
-    Una DLQ (cola de mensajes muertos) es un topic aparte a donde mandas los eventos que fallaron demasiadas veces. En vez de reintentar infinito o botar el evento, lo apartas para revisarlo después, y el consumidor sigue con el resto. En Kafka la convención es un topic con sufijo `.DLT` (dead letter topic).
+    Una DLQ (cola de mensajes muertos) es un topic aparte a donde mandas los eventos que fallaron demasiadas veces. En vez de reintentar infinito o botar el evento, lo apartas para revisarlo después, y el consumidor sigue con el resto. Spring publica ahí solo: toma el topic de origen y le pega el sufijo **`-dlt`** por defecto, así que `wallet.movements` va a dar a `wallet.movements-dlt`. (Ojo: es `-dlt`, no `-dlt`; si tu listener escucha el nombre equivocado, nunca verás los muertos llegar.)
 
-Spring for Kafka lo hace con un bean. Reintenta unas cuantas veces y, si sigue fallando, publica el evento al `.DLT`:
+Spring for Kafka lo hace con un bean. Reintenta unas cuantas veces y, si sigue fallando, publica el evento al `-dlt`:
 
 ```kotlin title="config/KafkaErrorConfig.kt"
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -296,7 +313,7 @@ class KafkaErrorConfig {
 
     @Bean
     fun errorHandler(kafkaTemplate: KafkaTemplate<Any, Any>): DefaultErrorHandler {
-        // Publica a "wallet.movements.DLT" tras agotar los reintentos.
+        // Publica a "wallet.movements-dlt" tras agotar los reintentos.
         val recoverer = DeadLetterPublishingRecoverer(kafkaTemplate)
         // 3 reintentos, esperando 1 segundo entre cada uno.
         val backOff = FixedBackOff(1000L, 3L)
@@ -309,14 +326,14 @@ class KafkaErrorConfig {
     En Spring Boot 4 la autoconfiguración de Jackson pasó a **Jackson 3**. Pero el `ObjectMapper` de `com.fasterxml.jackson.databind` (Jackson **2**) —el que usan el outbox y el `JsonSerializer`/`JsonDeserializer` de spring-kafka— ya no queda registrado solo. Al declararlo como bean, Spring lo inyecta donde se pida (por ejemplo, en el constructor del `TransferService`). `findAndRegisterModules()` engancha los módulos que tengas en el classpath, entre ellos el `jackson-datatype-jsr310` de la Fase 7 —así el `Instant` del evento se serializa bien—.
 
 !!! abstract "Spring al paso: cómo entra este bean solo"
-    Spring Boot detecta que declaraste un `DefaultErrorHandler` y se lo conecta a los `@KafkaListener` sin que hagas nada más. A partir de ahí, cualquier excepción en un listener pasa por esta política: reintenta con el backoff, y al agotarse manda el evento al `.DLT`. Después conectas otro consumidor a ese `.DLT` para alertar o inspeccionar.
+    Spring Boot detecta que declaraste un `DefaultErrorHandler` y se lo conecta a los `@KafkaListener` sin que hagas nada más. A partir de ahí, cualquier excepción en un listener pasa por esta política: reintenta con el backoff, y al agotarse manda el evento al `-dlt`. Después conectas otro consumidor a ese `-dlt` para alertar o inspeccionar.
 
 ### Cómo verlo en una demo (sin Slack)
 
 Para mostrar la DLQ en vivo tienes dos caminos, y ninguno necesita Slack ni infraestructura pesada:
 
-- **El más simple, en la consola**: un `@KafkaListener` extra suscrito al `.DLT` que solo **loguea** lo que llega. Mandas un evento "envenenado" (un JSON corrupto o un dato imposible que haga fallar al consumidor de `movement`), se agotan los reintentos, y ves el mensaje muerto aparecer en la consola.
-- **El más visual, sin código extra**: como ya usas **Redpanda**, ábrete su panel — al lado de `wallet.movements` va a aparecer el topic **`wallet.movements.DLT`** llenándose con los que fallaron. Señalas ahí y se explica solo. (Si corres el broker local con Docker, una UI como **Redpanda Console**, **AKHQ** o **Kafdrop** hace lo mismo en el navegador.)
+- **El más simple, en la consola**: un `@KafkaListener` extra suscrito al `-dlt` que solo **loguea** lo que llega. Mandas un evento "envenenado" (un JSON corrupto o un dato imposible que haga fallar al consumidor de `movement`), se agotan los reintentos, y ves el mensaje muerto aparecer en la consola.
+- **El más visual, sin código extra**: como ya usas **Redpanda**, ábrete su panel — al lado de `wallet.movements` va a aparecer el topic **`wallet.movements-dlt`** llenándose con los que fallaron. Señalas ahí y se explica solo. (Si corres el broker local con Docker, una UI como **Redpanda Console**, **AKHQ** o **Kafdrop** hace lo mismo en el navegador.)
 
 El listener de demo:
 
@@ -332,14 +349,14 @@ import org.springframework.stereotype.Component
 class DeadLetterListener {
     private val log = LoggerFactory.getLogger(javaClass)
 
-    @KafkaListener(topics = ["wallet.movements.DLT"], groupId = "dlt-demo")
+    @KafkaListener(topics = ["wallet.movements-dlt"], groupId = "dlt-demo")
     fun onDead(record: ConsumerRecord<String, String>) {
         log.warn("💀 Mensaje muerto en el DLT: key={} value={}", record.key(), record.value())
     }
 }
 ```
 
-El guion de la demo: mandas el evento envenenado, el consumidor de `movement` falla 3 veces (el `FixedBackOff`), y el evento aparece en `wallet.movements.DLT` —en tu consola por el `DeadLetterListener`, o en el panel de Redpanda—. Eso es justo lo que quieres mostrar: un mensaje malo no tranca la cola, se aparta y los demás siguen.
+El guion de la demo: mandas el evento envenenado, el consumidor de `movement` falla 3 veces (el `FixedBackOff`), y el evento aparece en `wallet.movements-dlt` —en tu consola por el `DeadLetterListener`, o en el panel de Redpanda—. Eso es justo lo que quieres mostrar: un mensaje malo no tranca la cola, se aparta y los demás siguen.
 
 ---
 
@@ -418,18 +435,31 @@ y produce un evento con monto negativo directo al topic (por eso `rpk`, no el en
 echo '{"eventId":"00000000-0000-0000-0000-000000000000","fromId":"11111111-1111-1111-1111-111111111111","toId":"22222222-2222-2222-2222-222222222222","amount":-1,"occurredAt":"2026-01-01T00:00:00Z"}'   | rpk topic produce wallet.movements --key 11111111-1111-1111-1111-111111111111
 ```
 
-El listener lanza, el `DefaultErrorHandler` reintenta 3 veces (el `FixedBackOff`) y, agotados los intentos, el `DeadLetterPublishingRecoverer` publica el evento en **`wallet.movements.DLT`**.
+El listener lanza, el `DefaultErrorHandler` reintenta 3 veces (el `FixedBackOff`) y, agotados los intentos, el `DeadLetterPublishingRecoverer` publica el evento en **`wallet.movements-dlt`**.
 
-**Opción B — JSON corrupto.** Si mandas un JSON malformado, el error es de **deserialización** (ocurre antes de entrar al listener). Para que ese tipo de error llegue al `.DLT` en vez de quedar en bucle, el value-deserializer debe ir envuelto en un `ErrorHandlingDeserializer` (un paso extra de configuración). Por eso, para el taller, la Opción A es más directa.
+**Opción B — JSON corrupto.** Si mandas un JSON malformado, el error es de **deserialización** y ocurre **antes** de entrar al listener, así que el `DefaultErrorHandler` no lo atrapa por sí solo: el mensaje queda en bucle y tranca la partición. La cura es envolver los deserializadores del consumidor en un `ErrorHandlingDeserializer`, que convierte el fallo de deserialización en una excepción normal —y esa sí la enruta el `DefaultErrorHandler` a la DLQ tras los reintentos—:
 
-**Cómo verlo llegar al `.DLT`:**
+```yaml title="src/main/resources/application.yaml (consumer, robusto ante JSON corrupto)"
+spring:
+  kafka:
+    consumer:
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+```
+
+El `ErrorHandlingDeserializer` no deserializa él mismo: envuelve al deserializador **real** (el `delegate`) y, si este lanza, captura el error en vez de tumbar el consumidor. Con esto, tanto un dato imposible (Opción A) como un JSON corrupto terminan en la DLQ, no en un bucle.
+
+**Cómo verlo llegar al `-dlt`:**
 
 ```bash
 # Consumir el topic de mensajes muertos
-rpk topic consume wallet.movements.DLT
+rpk topic consume wallet.movements-dlt
 ```
 
-También aparece en el **panel de Redpanda** (el topic `wallet.movements.DLT` con el evento dentro), o en el log si tienes el `DeadLetterListener` de arriba. Eso confirma lo que buscabas: un mensaje malo no tranca la cola —se aparta— y los demás siguen su curso.
+También aparece en el **panel de Redpanda** (el topic `wallet.movements-dlt` con el evento dentro), o en el log si tienes el `DeadLetterListener` de arriba. Eso confirma lo que buscabas: un mensaje malo no tranca la cola —se aparta— y los demás siguen su curso.
 
 ## Lo que quedó por fuera, en una línea cada uno
 
