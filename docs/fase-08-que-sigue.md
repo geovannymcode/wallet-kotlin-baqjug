@@ -32,7 +32,62 @@ CREATE TABLE outbox (
 );
 ```
 
-En vez de publicar, `transfer` guarda la fila en la misma transacción del movimiento. Fíjate que ahora el método sí es `@Transactional`, y adentro pasan las dos cosas juntas:
+Primero, la fila `outbox` es una **entidad JPA** como cualquier otra. Va en `transfer/messaging` (es plomería de mensajería, no lógica de negocio):
+
+```kotlin title="transfer/messaging/OutboxEvent.kt"
+package com.baqjug.wallet.transfer.messaging
+
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
+import jakarta.persistence.Table
+import java.time.Instant
+import java.util.UUID
+
+@Entity
+@Table(name = "outbox")
+class OutboxEvent(
+    @Column(nullable = false)
+    val topic: String,
+
+    @Column(name = "msg_key", nullable = false)
+    val msgKey: String,
+
+    @Column(nullable = false)
+    val payload: String,
+
+    @Column(name = "sent_at")
+    var sentAt: Instant? = null,
+
+    @Column(name = "created_at", nullable = false)
+    val createdAt: Instant = Instant.now(),
+
+    @Id
+    val id: UUID = UUID.randomUUID()
+)
+```
+
+Y su repositorio, con una consulta que trae solo lo que **falta por enviar**:
+
+```kotlin title="transfer/messaging/OutboxRepository.kt"
+package com.baqjug.wallet.transfer.messaging
+
+import org.springframework.data.jpa.repository.JpaRepository
+import java.util.UUID
+
+interface OutboxRepository : JpaRepository<OutboxEvent, UUID> {
+    fun findBySentAtIsNullOrderByCreatedAt(): List<OutboxEvent>
+}
+```
+
+!!! abstract "Spring al paso: la consulta sale del nombre del método"
+    `findBySentAtIsNullOrderByCreatedAt()` no la implementas: Spring Data la genera a partir del **nombre**. Léelo como frase: "los que tienen `sentAt` en null, ordenados por `createdAt`" — o sea, lo pendiente de publicar, del más viejo al más nuevo.
+
+Ahora sí, mira **qué cambió** en `transfer` respecto a la Fase 6, y por qué:
+
+- **Antes** (Fase 6), en la rama `Success`, `transfer` publicaba directo al broker: `publisher.publish(evento)`. Dos sistemas —base y broker— sin una transacción que los cubra a ambos.
+- **Ahora**, en vez de publicar, **guarda una fila en la tabla `outbox`** dentro de la **misma transacción** que mueve la plata. Por eso el método es `@Transactional`: mover el saldo y escribir el outbox se confirman **juntos** (o se deshacen juntos). Así el evento no se puede perder: si la transferencia quedó guardada, su fila de outbox también.
+- El evento se guarda como **texto JSON** con `mapper.writeValueAsString(evento)`, porque la columna `payload` es `TEXT`. Ese `mapper` es un `ObjectMapper` de Jackson que inyectas en el constructor. Un detalle de versiones que importa: en Spring Boot 4 (que trae Jackson 3), el `ObjectMapper` **clásico** de Jackson 2 —el que necesitan tanto este outbox como el `JsonSerializer` de spring-kafka— **no viene autoconfigurado**, así que lo declaras tú como bean. Lo dejamos junto a la configuración de Kafka, más abajo.
 
 ```kotlin title="transfer/domain/TransferService.kt (con outbox)"
 @Service
@@ -47,7 +102,7 @@ class TransferService(
         require(request.fromId != request.toId) { "No puedes transferir a la misma cuenta" }
         when (val result = accountService.moveMoney(request.fromId, request.toId, request.amount)) {
             is MoveResult.Success -> {
-                val evento = MovimientoRegistrado(request.fromId, request.toId, request.amount)
+                val evento = MovimientoRegistrado(fromId = request.fromId, toId = request.toId, amount = request.amount)
                 outbox.save(
                     OutboxEvent(
                         topic = "wallet.movements",
@@ -69,23 +124,71 @@ Y un relay que corre aparte, lee lo no enviado y publica:
 @Component
 class OutboxRelay(
     private val outbox: OutboxRepository,
-    private val kafkaTemplate: KafkaTemplate<String, String>
+    private val kafkaTemplate: KafkaTemplate<String, Any>,
+    private val mapper: ObjectMapper
 ) {
 
     @Scheduled(fixedDelay = 2000)
     @Transactional
     fun publicarPendientes() {
         outbox.findBySentAtIsNullOrderByCreatedAt().forEach { fila ->
-            kafkaTemplate.send(fila.topic, fila.msgKey, fila.payload)
+            // El payload ya es JSON (texto). Lo reparseamos a árbol para que
+            // el JsonSerializer lo codifique UNA sola vez (ver el danger de abajo).
+            kafkaTemplate.send(fila.topic, fila.msgKey, mapper.readTree(fila.payload))
             fila.sentAt = Instant.now()
         }
     }
 }
 ```
 
+!!! abstract "Spring al paso: qué hace el relay, línea por línea"
+    - `@Scheduled(fixedDelay = 2000)` — Spring llama este método **solo, cada 2 segundos**, en un hilo aparte. No lo invocas tú: corre en segundo plano. (Para que funcione, la app necesita `@EnableScheduling`, que agregamos justo abajo.)
+    - `@Transactional` — envuelve el barrido en una transacción, para que marcar `sent_at` se confirme bien.
+    - `findBySentAtIsNullOrderByCreatedAt()` — trae las filas **pendientes** (las que aún no tienen `sent_at`), de la más vieja a la más nueva.
+    - `kafkaTemplate.send(topic, key, mapper.readTree(payload))` — publica cada fila al broker. Ojo con el `readTree`: el `payload` ya es texto JSON, y el `KafkaTemplate` de la app serializa el valor con `JsonSerializer` (el de la Fase 6). Si le pasaras el `String` tal cual, Jackson lo **volvería a codificar** y el consumidor no podría leerlo. Reparseándolo a árbol con `readTree`, se serializa **una sola vez**. El `key` (la cuenta de origen) mantiene el orden por cuenta.
+    - `fila.sentAt = Instant.now()` — la marca como enviada. Como el método es `@Transactional` y la fila es una entidad JPA gestionada, Hibernate detecta el cambio y hace el `UPDATE` solo (*dirty checking*); no necesitas un `save`.
+
+!!! danger "Doble serialización: el bug silencioso del outbox"
+    Es fácil de introducir y difícil de ver. Guardaste el evento como **texto JSON** en la columna `payload`. Si el relay reenvía ese `String` tal cual por un `KafkaTemplate` con value-serializer `JsonSerializer` (el de la Fase 6), Jackson **codifica el texto otra vez**: en vez de `{"eventId":...}` publica `"{\"eventId\":...}"`, con comillas y escapes. El mensaje viaja, pero **ningún** `@KafkaListener` lo puede deserializar: agota los reintentos y cae a la DLQ en **cada** transferencia. La cura es reparsear el texto a árbol con `mapper.readTree(...)` antes de publicar, para que se serialice una sola vez.
+
+Como el relay ahora publica un árbol JSON (no el objeto original), el mensaje ya no lleva el header con el tipo Java. Dile al consumidor de la Fase 7 que **ignore ese header** y asuma siempre `MovimientoRegistrado` —es el único evento que viaja por ese topic—:
+
+```yaml title="src/main/resources/application.yaml (consumer, ajuste)"
+spring:
+  kafka:
+    consumer:
+      properties:
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.baqjug.wallet.movement.domain.MovimientoRegistrado
+```
+
+Para que ese `@Scheduled` corra de verdad, la aplicación tiene que **activar el scheduler** con `@EnableScheduling`. Va en la clase principal:
+
+```kotlin title="WalletApplication.kt"
+@SpringBootApplication
+@EnableScheduling
+class WalletApplication
+
+fun main(args: Array<String>) {
+    runApplication<WalletApplication>(*args)
+}
+```
+
+!!! warning "Sin `@EnableScheduling`, el outbox se queda mudo"
+    Es un olvido silencioso, de los que cuestan encontrar. Sin esa anotación, Spring nunca arranca el scheduler, así que `publicarPendientes()` **no se ejecuta nunca**: la fila se queda en `outbox` con `sent_at` en `NULL` para siempre, nada llega a Kafka, y como el consumidor no recibe eventos, `processed_events` sale vacío. La transferencia "parece" funcionar (el saldo se mueve), pero los eventos no viajan. Si ves el `sent_at` siempre en NULL, empieza por acá.
+
 Todo el ciclo, de la transacción al broker, se ve así:
 
 ![Diagrama de secuencia del patrón outbox: TransferService mueve el saldo y guarda una fila en la tabla outbox dentro de una sola transacción en Postgres; un OutboxRelay, cada 2 segundos, lee las filas no enviadas con FOR UPDATE SKIP LOCKED, las publica en Redpanda y marca sent_at](img/Img_5.png)
+
+El diagrama, paso a paso:
+
+1. **`TransferService` → Postgres (una sola transacción):** mueve el saldo **y** guarda la fila en la tabla `outbox`, las dos cosas juntas. Si algo falla, se revierten ambas.
+2. **`OutboxRelay` lee (cada 2 s):** despierta por el `@Scheduled` y le pide a Postgres las filas no enviadas (`sent_at` en null). En producción, con `FOR UPDATE SKIP LOCKED` para que dos relays no tomen la misma.
+3. **`OutboxRelay` → Redpanda:** publica cada fila como evento en el topic.
+4. **`OutboxRelay` → Postgres:** marca la fila con `sent_at`, para no volver a publicarla.
+
+La clave: el paso 1 es transaccional (solo la base); del 2 al 4, el relay se encarga de que lo que quedó guardado **llegue** al broker, aunque haya reintentos por el camino.
 
 !!! note "Por qué no lo metimos en el taller en vivo"
     El outbox agrega una tabla, un relay con `@Scheduled` y serialización a mano. Para 60 minutos, habría tapado el concepto central (publicar y consumir) con plomería. Pero en algo con plata, el outbox no es opcional: es la diferencia entre "casi siempre avisa" y "siempre avisa".
@@ -118,6 +221,9 @@ data class MovimientoRegistrado(
 )
 ```
 
+!!! danger "Ojo: al agregar `eventId`, construye con nombres"
+    Metimos `eventId` como **primer** campo, con valor por defecto. Si en algún lado construyes el evento por **posición** —`MovimientoRegistrado(request.fromId, ...)`—, ahora ese primer argumento se iría a `eventId` y **rompe**. La regla: construye siempre con **argumentos con nombre** —`MovimientoRegistrado(fromId = ..., toId = ..., amount = ...)`— y deja que `eventId` se autogenere. Lo mismo si mañana agregas otro campo: con nombres, nada se corre de lugar. (Por eso el `TransferService` de la Fase 6 y el outbox de arriba ya construyen con nombres.)
+
 ```sql title="db/migration/V4__create_processed_events.sql"
 CREATE TABLE processed_events (
     event_id     UUID        NOT NULL,
@@ -126,17 +232,57 @@ CREATE TABLE processed_events (
 );
 ```
 
-El listener chequea, procesa y marca, todo en una transacción:
+Necesitas dos piezas nuevas: la **entidad** que marca lo ya procesado y su **repositorio** (mapean la tabla `processed_events`, en `movement/messaging`):
+
+```kotlin title="movement/messaging/ProcessedEvent.kt"
+package com.baqjug.wallet.movement.messaging
+
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
+import jakarta.persistence.Table
+import java.time.Instant
+import java.util.UUID
+
+@Entity
+@Table(name = "processed_events")
+class ProcessedEvent(
+    @Id
+    @Column(name = "event_id")
+    val eventId: UUID,
+
+    @Column(name = "processed_at", nullable = false)
+    val processedAt: Instant = Instant.now()
+)
+```
+
+```kotlin title="movement/messaging/ProcessedEventRepository.kt"
+package com.baqjug.wallet.movement.messaging
+
+import org.springframework.data.jpa.repository.JpaRepository
+import java.util.UUID
+
+interface ProcessedEventRepository : JpaRepository<ProcessedEvent, UUID>
+```
+
+Y ahora sí el listener, con `movementService` y `processedRepo` inyectados, chequea, procesa y marca, todo en una transacción:
 
 ```kotlin title="movement/messaging/MovimientoPersistenceListener.kt (idempotente)"
-@KafkaListener(topics = ["wallet.movements"], groupId = "movement")
-@Transactional
-fun onMovimiento(evento: MovimientoRegistrado) {
-    if (processedRepo.existsById(evento.eventId)) {
-        return // ya lo procesé, lo ignoro
+@Component
+class MovimientoPersistenceListener(
+    private val movementService: MovementService,
+    private val processedRepo: ProcessedEventRepository
+) {
+
+    @KafkaListener(topics = ["wallet.movements"], groupId = "movement")
+    @Transactional
+    fun onMovimiento(evento: MovimientoRegistrado) {
+        if (processedRepo.existsById(evento.eventId)) {
+            return // ya lo procesé, lo ignoro
+        }
+        movementService.record(evento.fromId, evento.toId, evento.amount)
+        processedRepo.save(ProcessedEvent(evento.eventId))
     }
-    movementService.record(evento.fromId, evento.toId, evento.amount)
-    processedRepo.save(ProcessedEvent(evento.eventId))
 }
 ```
 
@@ -148,17 +294,26 @@ fun onMovimiento(evento: MovimientoRegistrado) {
 ¿Qué pasa cuando un evento revienta el consumidor una y otra vez? Un JSON corrupto, un dato imposible. Si lo reintentas para siempre, ese evento tranca la partición y bloquea a los que vienen detrás.
 
 !!! abstract "Concepto al paso: dead letter queue"
-    Una DLQ (cola de mensajes muertos) es un topic aparte a donde mandas los eventos que fallaron demasiadas veces. En vez de reintentar infinito o botar el evento, lo apartas para revisarlo después, y el consumidor sigue con el resto. En Kafka la convención es un topic con sufijo `.DLT` (dead letter topic).
+    Una DLQ (cola de mensajes muertos) es un topic aparte a donde mandas los eventos que fallaron demasiadas veces. En vez de reintentar infinito o botar el evento, lo apartas para revisarlo después, y el consumidor sigue con el resto. Spring publica ahí solo: toma el topic de origen y le pega el sufijo **`-dlt`** por defecto, así que `wallet.movements` va a dar a `wallet.movements-dlt`. (Ojo: es `-dlt`, no `-dlt`; si tu listener escucha el nombre equivocado, nunca verás los muertos llegar.)
 
-Spring for Kafka lo hace con un bean. Reintenta unas cuantas veces y, si sigue fallando, publica el evento al `.DLT`:
+Spring for Kafka lo hace con un bean. Reintenta unas cuantas veces y, si sigue fallando, publica el evento al `-dlt`:
 
 ```kotlin title="config/KafkaErrorConfig.kt"
+import com.fasterxml.jackson.databind.ObjectMapper
+// ...demás imports
+
 @Configuration
 class KafkaErrorConfig {
 
+    // Spring Boot 4 (Jackson 3) no autoconfigura este ObjectMapper clásico (Jackson 2);
+    // lo necesitan el payload del outbox (TransferService) y el JsonSerializer de
+    // spring-kafka, que aún usan Jackson 2.
+    @Bean
+    fun objectMapper(): ObjectMapper = ObjectMapper().findAndRegisterModules()
+
     @Bean
     fun errorHandler(kafkaTemplate: KafkaTemplate<Any, Any>): DefaultErrorHandler {
-        // Publica a "wallet.movements.DLT" tras agotar los reintentos.
+        // Publica a "wallet.movements-dlt" tras agotar los reintentos.
         val recoverer = DeadLetterPublishingRecoverer(kafkaTemplate)
         // 3 reintentos, esperando 1 segundo entre cada uno.
         val backOff = FixedBackOff(1000L, 3L)
@@ -167,10 +322,144 @@ class KafkaErrorConfig {
 }
 ```
 
+!!! abstract "Spring al paso: por qué declaras tú el `ObjectMapper`"
+    En Spring Boot 4 la autoconfiguración de Jackson pasó a **Jackson 3**. Pero el `ObjectMapper` de `com.fasterxml.jackson.databind` (Jackson **2**) —el que usan el outbox y el `JsonSerializer`/`JsonDeserializer` de spring-kafka— ya no queda registrado solo. Al declararlo como bean, Spring lo inyecta donde se pida (por ejemplo, en el constructor del `TransferService`). `findAndRegisterModules()` engancha los módulos que tengas en el classpath, entre ellos el `jackson-datatype-jsr310` de la Fase 7 —así el `Instant` del evento se serializa bien—.
+
 !!! abstract "Spring al paso: cómo entra este bean solo"
-    Spring Boot detecta que declaraste un `DefaultErrorHandler` y se lo conecta a los `@KafkaListener` sin que hagas nada más. A partir de ahí, cualquier excepción en un listener pasa por esta política: reintenta con el backoff, y al agotarse manda el evento al `.DLT`. Después conectas otro consumidor a ese `.DLT` para alertar o inspeccionar.
+    Spring Boot detecta que declaraste un `DefaultErrorHandler` y se lo conecta a los `@KafkaListener` sin que hagas nada más. A partir de ahí, cualquier excepción en un listener pasa por esta política: reintenta con el backoff, y al agotarse manda el evento al `-dlt`. Después conectas otro consumidor a ese `-dlt` para alertar o inspeccionar.
+
+### Cómo verlo en una demo (sin Slack)
+
+Para mostrar la DLQ en vivo tienes dos caminos, y ninguno necesita Slack ni infraestructura pesada:
+
+- **El más simple, en la consola**: un `@KafkaListener` extra suscrito al `-dlt` que solo **loguea** lo que llega. Mandas un evento "envenenado" (un JSON corrupto o un dato imposible que haga fallar al consumidor de `movement`), se agotan los reintentos, y ves el mensaje muerto aparecer en la consola.
+- **El más visual, sin código extra**: como ya usas **Redpanda**, ábrete su panel — al lado de `wallet.movements` va a aparecer el topic **`wallet.movements-dlt`** llenándose con los que fallaron. Señalas ahí y se explica solo. (Si corres el broker local con Docker, una UI como **Redpanda Console**, **AKHQ** o **Kafdrop** hace lo mismo en el navegador.)
+
+El listener de demo:
+
+```kotlin title="notification/messaging/DeadLetterListener.kt (solo para la demo)"
+package com.baqjug.wallet.notification.messaging
+
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.slf4j.LoggerFactory
+import org.springframework.kafka.annotation.KafkaListener
+import org.springframework.stereotype.Component
+
+@Component
+class DeadLetterListener {
+    private val log = LoggerFactory.getLogger(javaClass)
+
+    @KafkaListener(topics = ["wallet.movements-dlt"], groupId = "dlt-demo")
+    fun onDead(record: ConsumerRecord<String, String>) {
+        log.warn("💀 Mensaje muerto en el DLT: key={} value={}", record.key(), record.value())
+    }
+}
+```
+
+El guion de la demo: mandas el evento envenenado, el consumidor de `movement` falla 3 veces (el `FixedBackOff`), y el evento aparece en `wallet.movements-dlt` —en tu consola por el `DeadLetterListener`, o en el panel de Redpanda—. Eso es justo lo que quieres mostrar: un mensaje malo no tranca la cola, se aparta y los demás siguen.
 
 ---
+
+## Probar los escenarios
+
+Para ejercitar todo esto sin adivinar, deja un archivo `test.http` en el proyecto: IntelliJ lo corre con el ▶️ al lado de cada request, y también lo puedes importar a Postman.
+
+```http title="test.http"
+### 1. Consultar el saldo de Elena
+GET http://localhost:8080/api/accounts/11111111-1111-1111-1111-111111111111
+
+### 2. Transferir (dispara el evento: outbox -> relay -> consumidores)
+POST http://localhost:8080/api/transfers
+Content-Type: application/json
+
+{
+  "fromId": "11111111-1111-1111-1111-111111111111",
+  "toId": "22222222-2222-2222-2222-222222222222",
+  "amount": 15000.00
+}
+
+### 3. Consultar el saldo de Geovanny (debió subir)
+GET http://localhost:8080/api/accounts/22222222-2222-2222-2222-222222222222
+```
+
+### Verificar en la base de datos
+
+Abre el **SQL Editor** de Supabase (o cualquier cliente Postgres) y corre estas consultas para comprobar, con tus ojos, que todo pasó de verdad:
+
+```sql
+-- Saldos actuales: Elena debió bajar, Geovanny subir.
+SELECT id, owner, balance FROM accounts ORDER BY owner;
+
+-- El movimiento quedó registrado (uno por transferencia).
+SELECT from_id, to_id, amount, occurred_at
+FROM movements ORDER BY occurred_at DESC LIMIT 10;
+
+-- Outbox: la fila del evento. Al principio con sent_at en NULL; un par
+-- de segundos después el relay la marca (ya la publicó al broker).
+SELECT id, topic, msg_key, sent_at, created_at
+FROM outbox ORDER BY created_at DESC LIMIT 10;
+
+-- ¿Queda algo sin publicar? (debería bajar a 0 rápido)
+SELECT count(*) AS pendientes FROM outbox WHERE sent_at IS NULL;
+
+-- Idempotencia: los eventos que el consumidor ya procesó.
+SELECT event_id, processed_at FROM processed_events ORDER BY processed_at DESC LIMIT 10;
+```
+
+- **Outbox** — tras el `POST`, la fila aparece en `outbox` y su `sent_at` se llena en segundos; en `movements` ves el registro y en Mailpit el correo.
+- **Idempotencia** — para forzar una reentrega, **reinicia la app** (con `auto-offset-reset: earliest` el grupo vuelve a leer los eventos). El evento llega otra vez, pero **no** se duplica. Compruébalo:
+
+```sql
+-- Si sale alguna fila, hubo duplicado. No debería salir ninguna.
+SELECT from_id, to_id, amount, count(*)
+FROM movements
+GROUP BY from_id, to_id, amount
+HAVING count(*) > 1;
+```
+
+El `eventId` ya estaba en `processed_events`, así que el listener lo ignoró y no guardó de nuevo.
+
+### Probar la DLQ
+
+La DLQ solo se llena cuando el consumidor **falla** con un mensaje una y otra vez. Como el endpoint valida los datos (no te deja mandar un evento malo), el mensaje "envenenado" hay que meterlo **directo al topic**. Dos caminos:
+
+**Opción A — que el listener falle a propósito (la más confiable para una demo).** En el listener de `movement`, agrega temporalmente un centinela:
+
+```kotlin
+if (evento.amount < BigDecimal.ZERO) throw IllegalStateException("evento envenenado para la demo")
+```
+
+y produce un evento con monto negativo directo al topic (por eso `rpk`, no el endpoint):
+
+```bash
+echo '{"eventId":"00000000-0000-0000-0000-000000000000","fromId":"11111111-1111-1111-1111-111111111111","toId":"22222222-2222-2222-2222-222222222222","amount":-1,"occurredAt":"2026-01-01T00:00:00Z"}'   | rpk topic produce wallet.movements --key 11111111-1111-1111-1111-111111111111
+```
+
+El listener lanza, el `DefaultErrorHandler` reintenta 3 veces (el `FixedBackOff`) y, agotados los intentos, el `DeadLetterPublishingRecoverer` publica el evento en **`wallet.movements-dlt`**.
+
+**Opción B — JSON corrupto.** Si mandas un JSON malformado, el error es de **deserialización** y ocurre **antes** de entrar al listener, así que el `DefaultErrorHandler` no lo atrapa por sí solo: el mensaje queda en bucle y tranca la partición. La cura es envolver los deserializadores del consumidor en un `ErrorHandlingDeserializer`, que convierte el fallo de deserialización en una excepción normal —y esa sí la enruta el `DefaultErrorHandler` a la DLQ tras los reintentos—:
+
+```yaml title="src/main/resources/application.yaml (consumer, robusto ante JSON corrupto)"
+spring:
+  kafka:
+    consumer:
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+```
+
+El `ErrorHandlingDeserializer` no deserializa él mismo: envuelve al deserializador **real** (el `delegate`) y, si este lanza, captura el error en vez de tumbar el consumidor. Con esto, tanto un dato imposible (Opción A) como un JSON corrupto terminan en la DLQ, no en un bucle.
+
+**Cómo verlo llegar al `-dlt`:**
+
+```bash
+# Consumir el topic de mensajes muertos
+rpk topic consume wallet.movements-dlt
+```
+
+También aparece en el **panel de Redpanda** (el topic `wallet.movements-dlt` con el evento dentro), o en el log si tienes el `DeadLetterListener` de arriba. Eso confirma lo que buscabas: un mensaje malo no tranca la cola —se aparta— y los demás siguen su curso.
 
 ## Lo que quedó por fuera, en una línea cada uno
 
@@ -182,6 +471,6 @@ class KafkaErrorConfig {
 
 Construiste una wallet que mueve plata de forma transaccional, la expusiste por REST, y desacoplaste el registro y la notificación con eventos sobre Redpanda, con consumidores independientes que reaccionan sin conocerse. Y ahora sabes qué le falta para producción, con código, no con handwaving: outbox para no perder eventos, idempotencia para no duplicarlos, y DLQ para no atascarte con uno malo.
 
-¿Quieres exprimir más el lado Kotlin? En la [Fase 9](fase-09-coroutines.md) —avanzada y opcional— tomamos el consumidor bloqueante de la Fase 7 y lo llevamos a **coroutines**, para cuando un consumidor tiene que llamar a varios servicios externos sin bloquear un hilo por cada espera.
+¿Quieres exprimir más el lado Kotlin? En la [Fase 9](fase-09-coroutines.md), tomamos el consumidor bloqueante de la Fase 7 y lo llevamos a **coroutines**, para cuando un consumidor tiene que llamar a varios servicios externos sin bloquear un hilo por cada espera.
 
 Revisa las [Referencias](referencias.md) para seguir por tu cuenta.

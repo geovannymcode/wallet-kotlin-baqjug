@@ -1,6 +1,6 @@
 # Punto de partida
 
-**Bienvenido.** Vas a construir la parte más jugosa de una wallet: la que desacopla el sistema con **eventos**. Pero antes de escribir la primera línea, necesitas dos cosas para no perderte: **entender qué se construyó antes** para que nada te suene a magia y **tener el proyecto corriendo en tu máquina**. Esta página te da las dos, más un repaso rápido del Kotlin que vamos a usar. Cinco minutos aquí, y arrancamos todos parejos: sepas o no sepas Kotlin.
+**Bienvenido.** Vas a construir la parte más jugosa de una wallet: la que desacopla el sistema con **eventos**. Pero antes de escribir la primera línea, necesitas dos cosas para no perderte: **entender qué se construyó antes**, para que nada te suene a magia y **tener el proyecto corriendo en tu máquina**. Esta página te da las dos, más un repaso rápido del Kotlin que vamos a usar. Cinco minutos aquí, y arrancamos todos parejos: sepas o no sepas Kotlin.
 
 ## Qué se construyó de la Fase 0 a la 4
 
@@ -13,7 +13,7 @@ Antes de los eventos, las primeras fases levantan una **wallet REST completa y f
 Todo sobre Kotlin + Spring Boot, con arquitectura **por features** (Tomato: `domain`/`web`, servicios concretos, un mapper entre la entidad y el DTO), Postgres gestionado en Supabase y el esquema versionado con Flyway. Es una wallet que mueve plata de verdad, síncrona, contra una base real.
 
 !!! abstract "La pieza clave para lo que viene"
-    En la Fase 4, `transfer` registra el movimiento con una **llamada directa** a `movement`. Esa costura esa llamada síncrona y acoplada, es justo lo que la parte de eventos va a cortar. Guárdala en la cabeza: es el "antes" de toda la segunda mitad.
+    En la Fase 4, `transfer` registra el movimiento con una **llamada directa** a `movement`. Esa costura, esa llamada síncrona y acoplada, es justo lo que la parte de eventos va a cortar. Guárdala en la cabeza: es el "antes" de toda la segunda mitad.
 
 ## Por qué arrancamos aquí
 

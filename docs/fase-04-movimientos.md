@@ -136,6 +136,16 @@ Visto de punta a punta, así recorre una transferencia exitosa el flujo síncron
 
 ![Diagrama de secuencia de una transferencia: el cliente hace POST /api/transfers al TransferController, que llama a TransferService dentro de una transacción; este pide moveMoney a AccountService y luego record a MovementService, y responde 200 COMPLETED](img/Img_1.png)
 
+El diagrama, paso a paso:
+
+1. **Cliente → `TransferController`** (`POST /api/transfers`): llega la petición con origen, destino y monto.
+2. **`TransferController` → `TransferService`:** el controller solo delega, y aquí se abre la transacción.
+3. **`TransferService` → `AccountService.moveMoney`:** valida el saldo y mueve la plata entre las dos cuentas.
+4. **`TransferService` → `MovementService.record`:** con el `Success` en mano, registra el movimiento. Esta es la **llamada directa**.
+5. **Respuesta `200 COMPLETED`** de vuelta al cliente.
+
+Todo ocurre en una sola transacción y un solo proceso, así que los pasos 3 y 4 se confirman juntos. Y fíjate en el paso 4: es la costura —`transfer` llamando a `movement` en línea— que la parte de eventos va a cortar en la [Fase 5](fase-05-por-que-eventos.md).
+
 ## Parte 4 — Un test que corre sin base
 
 Antes de cerrar, un test de la orquestación de `transfer`. Lo bueno: no necesita base ni Spring. Como `transfer` depende de dos clases concretas (`AccountService` y `MovementService`), las **mockeamos**: creamos versiones falsas al vuelo, les decimos qué responder, y verificamos con quién habló `transfer`.
